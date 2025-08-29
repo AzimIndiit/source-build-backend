@@ -1,0 +1,8 @@
+dist
+node_modules
+coverage
+*.js
+scripts/*.js
+*.config.js
+*.config.ts
+jest.config.js

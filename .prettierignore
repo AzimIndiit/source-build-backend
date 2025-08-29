@@ -1,0 +1,14 @@
+dist
+node_modules
+coverage
+.env
+.env.*
+*.log
+*.md
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+tsconfig.json
+.eslintrc.json
+*.yml
+*.yaml

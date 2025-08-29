@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: source-build-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: sourcebuild
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - source-build-network
+    command: mongod --auth --bind_ip_all
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: source-build-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - source-build-network
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass redis123
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # MongoDB Express (Database Admin UI)
+  mongo-express:
+    image: mongo-express:1.0.0
+    container_name: source-build-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password123
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password123@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    ports:
+      - "8081:8081"
+    networks:
+      - source-build-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  # Redis Commander (Redis Admin UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: source-build-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:1:redis123
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    ports:
+      - "8082:8081"
+    networks:
+      - source-build-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  # Application (for development)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: source-build-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/sourcebuild?authSource=admin
+      REDIS_URL: redis://:redis123@redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-that-should-be-at-least-32-characters
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-that-should-be-at-least-32-characters
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 30d
+      BCRYPT_SALT_ROUNDS: 12
+      LOG_LEVEL: debug
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Debug port
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - app_logs:/app/logs
+    networks:
+      - source-build-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - app
+    command: npm run dev
+
+  # Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: source-build-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/ssl:/etc/nginx/ssl:ro
+    networks:
+      - source-build-network
+    depends_on:
+      - app
+    profiles:
+      - production
+
+  # Elasticsearch (for logging and search)
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: source-build-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - source-build-network
+    profiles:
+      - logging
+
+  # Kibana (Elasticsearch UI)
+  kibana:
+    image: kibana:8.11.0
+    container_name: source-build-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - source-build-network
+    depends_on:
+      - elasticsearch
+    profiles:
+      - logging
+
+  # Prometheus (Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: source-build-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - source-build-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+
+  # Grafana (Monitoring Dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: source-build-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - source-build-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+# Networks
+networks:
+  source-build-network:
+    driver: bridge
+    name: source-build-network
+
+# Named volumes
+volumes:
+  mongodb_data:
+    driver: local
+    name: source-build-mongodb-data
+  
+  redis_data:
+    driver: local
+    name: source-build-redis-data
+  
+  elasticsearch_data:
+    driver: local
+    name: source-build-elasticsearch-data
+  
+  prometheus_data:
+    driver: local
+    name: source-build-prometheus-data
+  
+  grafana_data:
+    driver: local
+    name: source-build-grafana-data
+  
+  app_logs:
+    driver: local
+    name: source-build-app-logs

@@ -1,0 +1,1260 @@
+{
+  "info": {
+    "name": "Source Build API",
+    "description": "Enterprise-grade Node.js backend API for Source Build e-commerce marketplace",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Quick Start",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Check if the API is running"
+          },
+          "response": []
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\",\n  \"role\": \"buyer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password"
+          },
+          "response": []
+        }
+      ],
+      "description": "Example requests to get started quickly"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register a new user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "201 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "User registered successfully",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"message\": \"User registered successfully\",\n  \"data\": {}\n}"
+            },
+            {
+              "name": "400 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Validation error",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"string\",\n  \"errors\": [],\n  \"meta\": {}\n}"
+            },
+            {
+              "name": "409 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "User already exists",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"string\",\n  \"errors\": [],\n  \"meta\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"string\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Login successful",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"message\": \"Login successful\",\n  \"data\": {}\n}"
+            },
+            {
+              "name": "401 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Invalid credentials",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"error\",\n  \"message\": \"string\",\n  \"errors\": [],\n  \"meta\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Google OAuth login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"string\",\n  \"accessToken\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/google",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "google"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Google login successful",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh access token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Token refreshed successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Request password reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/forgot-password",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Reset password with token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"string\",\n  \"newPassword\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/reset-password",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check endpoint",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Service is healthy",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {}\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Health endpoints"
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload a single file",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/files",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files"
+              ]
+            },
+            "description": "Universal file upload endpoint that supports images, videos, and documents with automatic processing"
+          },
+          "response": [
+            {
+              "name": "201 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "File uploaded successfully",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"507f1f77bcf86cd799439011\",\n    \"filename\": \"example.jpg\",\n    \"originalName\": \"example.jpg\",\n    \"mimeType\": \"image/jpeg\",\n    \"size\": 1048576,\n    \"humanReadableSize\": \"1 MB\",\n    \"url\": \"https://example.s3.amazonaws.com/example.jpg\",\n    \"thumbnailUrl\": \"https://example.s3.amazonaws.com/example-thumb.jpg\",\n    \"bestImageUrl\": \"https://example.s3.amazonaws.com/example-compressed.webp\",\n    \"uploadedAt\": \"2024-01-20T10:30:00Z\",\n    \"isImage\": true,\n    \"isVideo\": false,\n    \"isProcessed\": true,\n    \"dimensions\": {\n      \"width\": 1920,\n      \"height\": 1080\n    },\n    \"variants\": {\n      \"compressed\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-compressed.webp\",\n        \"size\": 524288,\n        \"dimensions\": {\n          \"width\": 1920,\n          \"height\": 1080\n        }\n      },\n      \"thumbnail\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-thumb.jpg\",\n        \"size\": 102400,\n        \"dimensions\": {\n          \"width\": 200,\n          \"height\": 200\n        }\n      }\n    }\n  },\n  \"message\": \"File uploaded successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get all files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/files",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "type",
+                  "value": "{{type}}",
+                  "description": "Filter by file type"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "{{sortBy}}",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "order",
+                  "value": "{{order}}",
+                  "description": "Sort order"
+                }
+              ]
+            },
+            "description": "Get all files with pagination and filtering options"
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Files retrieved successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"files\": [\n      {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"filename\": \"example.jpg\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 1048576,\n        \"humanReadableSize\": \"1 MB\",\n        \"url\": \"https://example.s3.amazonaws.com/example.jpg\",\n        \"thumbnailUrl\": \"https://example.s3.amazonaws.com/example-thumb.jpg\",\n        \"uploadedAt\": \"2024-01-20T10:30:00Z\",\n        \"isImage\": true,\n        \"isVideo\": false\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 50,\n      \"pages\": 5,\n      \"hasNext\": true,\n      \"hasPrev\": false\n    },\n    \"meta\": {\n      \"images\": 25,\n      \"videos\": 10,\n      \"documents\": 15\n    }\n  },\n  \"message\": \"Files retrieved successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload multiple files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "value": "",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/files/multiple",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files",
+                "multiple"
+              ]
+            },
+            "description": "Upload multiple files at once (maximum 10 files)"
+          },
+          "response": [
+            {
+              "name": "201 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Files uploaded successfully",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"files\": [\n      {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"filename\": \"image1.jpg\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 1048576,\n        \"url\": \"https://example.s3.amazonaws.com/image1.jpg\",\n        \"isImage\": true\n      },\n      {\n        \"id\": \"507f1f77bcf86cd799439012\",\n        \"filename\": \"document.pdf\",\n        \"mimeType\": \"application/pdf\",\n        \"size\": 2097152,\n        \"url\": \"https://example.s3.amazonaws.com/document.pdf\",\n        \"isImage\": false\n      }\n    ],\n    \"meta\": {\n      \"total\": 2,\n      \"uploaded\": 2,\n      \"failed\": 0,\n      \"images\": 1,\n      \"videos\": 0,\n      \"documents\": 1\n    }\n  },\n  \"message\": \"Files uploaded successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get current user's files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/files/my-files",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files",
+                "my-files"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "type",
+                  "value": "{{type}}",
+                  "description": "Filter by file type"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "{{sortBy}}",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "order",
+                  "value": "{{order}}",
+                  "description": "Sort order"
+                }
+              ]
+            },
+            "description": "Get all files uploaded by the authenticated user with storage information"
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "User files retrieved successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"files\": [\n      {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"filename\": \"my-photo.jpg\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 1048576,\n        \"humanReadableSize\": \"1 MB\",\n        \"url\": \"https://example.s3.amazonaws.com/my-photo.jpg\",\n        \"uploadedAt\": \"2024-01-20T10:30:00Z\",\n        \"isImage\": true\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 15,\n      \"pages\": 2,\n      \"hasNext\": true,\n      \"hasPrev\": false\n    },\n    \"storage\": {\n      \"used\": 157286400,\n      \"humanReadable\": \"150 MB\",\n      \"limit\": 10737418240,\n      \"percentUsed\": 1.5\n    },\n    \"meta\": {\n      \"totalFiles\": 15,\n      \"images\": 10,\n      \"videos\": 2,\n      \"documents\": 3\n    }\n  },\n  \"message\": \"User files retrieved successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get file by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/files/:id",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files",
+                ":id"
+              ]
+            },
+            "description": "Get detailed information about a specific file"
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "File retrieved successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"507f1f77bcf86cd799439011\",\n    \"filename\": \"example-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 10485760,\n    \"humanReadableSize\": \"10 MB\",\n    \"url\": \"https://example.s3.amazonaws.com/example-video.mp4\",\n    \"thumbnailUrl\": \"https://example.s3.amazonaws.com/example-video-thumb.jpg\",\n    \"uploadedAt\": \"2024-01-20T10:30:00Z\",\n    \"uploadedBy\": {\n      \"_id\": \"507f1f77bcf86cd799439099\",\n      \"email\": \"user@example.com\",\n      \"profile\": {\n        \"displayName\": \"John Doe\"\n      }\n    },\n    \"isImage\": false,\n    \"isVideo\": true,\n    \"isProcessed\": true,\n    \"dimensions\": {\n      \"width\": 1920,\n      \"height\": 1080\n    },\n    \"duration\": 120,\n    \"formattedDuration\": \"2:00\",\n    \"variants\": {\n      \"high\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-video-high.mp4\",\n        \"size\": 8388608\n      },\n      \"medium\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-video-medium.mp4\",\n        \"size\": 5242880\n      },\n      \"low\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-video-low.mp4\",\n        \"size\": 2097152\n      },\n      \"thumbnail\": {\n        \"url\": \"https://example.s3.amazonaws.com/example-video-thumb.jpg\",\n        \"size\": 51200\n      }\n    }\n  },\n  \"message\": \"File retrieved successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete file",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/files/:id",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "files",
+                ":id"
+              ]
+            },
+            "description": "Delete a file by ID. Only the file owner or admin can delete files."
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "File deleted successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": null,\n  \"message\": \"File deleted successfully\"\n}"
+            },
+            {
+              "name": "403 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Forbidden - not authorized to delete this file",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"You are not authorized to delete this file\",\n    \"code\": \"FORBIDDEN\",\n    \"statusCode\": 403\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Files endpoints"
+    },
+    {
+      "name": "OTP",
+      "item": [
+        {
+          "name": "Create and send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"type\": \"UR\",\n  \"path\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/otp/create",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "otp",
+                "create"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "OTP sent successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"data\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"string\",\n  \"type\": \"UR\",\n  \"path\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/otp/verify",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "otp",
+                "verify"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "OTP verified successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"data\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"type\": \"UR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/otp/resend",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "otp",
+                "resend"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "OTP resent successfully",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"data\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Check OTP service health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/otp/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "api",
+                "v1",
+                "otp",
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "200 Response",
+              "originalRequest": {
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/endpoint"
+                }
+              },
+              "status": "Service is healthy",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"data\": {}\n}"
+            }
+          ]
+        }
+      ],
+      "description": "OTP endpoints"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Auto-refresh token if expired",
+          "const accessToken = pm.environment.get(\"access_token\");",
+          "const refreshToken = pm.environment.get(\"refresh_token\");",
+          "",
+          "if (refreshToken && !accessToken) {",
+          "    const refreshRequest = {",
+          "        url: pm.environment.get(\"base_url\") + \"/auth/refresh\",",
+          "        method: \"POST\",",
+          "        header: {",
+          "            \"Content-Type\": \"application/json\"",
+          "        },",
+          "        body: {",
+          "            mode: \"raw\",",
+          "            raw: JSON.stringify({ refreshToken: refreshToken })",
+          "        }",
+          "    };",
+          "",
+          "    pm.sendRequest(refreshRequest, (err, response) => {",
+          "        if (!err && response.code === 200) {",
+          "            const jsonData = response.json();",
+          "            pm.environment.set(\"access_token\", jsonData.data.accessToken);",
+          "            pm.environment.set(\"refresh_token\", jsonData.data.refreshToken);",
+          "        }",
+          "    });",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Save tokens from login/register responses",
+          "if (pm.response.code === 200 || pm.response.code === 201) {",
+          "    const jsonData = pm.response.json();",
+          "    ",
+          "    if (jsonData.data && jsonData.data.tokens) {",
+          "        pm.environment.set(\"access_token\", jsonData.data.tokens.accessToken);",
+          "        pm.environment.set(\"refresh_token\", jsonData.data.tokens.refreshToken);",
+          "        pm.environment.set(\"user_id\", jsonData.data.user.id);",
+          "    }",
+          "}",
+          "",
+          "// Log response time",
+          "pm.test(\"Response time is less than 500ms\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(500);",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

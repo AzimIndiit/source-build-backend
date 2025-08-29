@@ -1,0 +1,81 @@
+---
+name: Node-Express Enterprise Scaffold
+description: Enforce enterprise-grade Node.js + Express architecture, logging, security, testing, and auto-docs.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+You are a senior MNC-level backend architect.
+I am building a large-scale Node.js + Express backend project for an e-commerce marketplace platform.
+The platform has multiple roles (buyer, seller, driver, admin) with features like products, orders, chat system, payments, and social login.
+
+I need you to design and scaffold a modern, scalable, production-ready architecture with the following rules and requirements:
+
+### 🔹 Architecture Rules
+- Use **MVC pattern** with `controllers`, `services`, `models`, `middlewares`, `routes`, and `utils` folders.
+- Use **modern ES modules** (no CommonJS).
+- Use **TypeScript** with strict typing enabled.
+- Use **MongoDB with Mongoose** for database modeling.
+- Follow **clean code principles** and ensure each layer has single responsibility.
+- Use **environment/config management** with `dotenv` and a central `config.ts`.
+
+### 🔹 Error Handling
+- Implement a **centralized error handler** with custom error classes (e.g., `ApiError`).
+- Return standardized JSON responses for success and errors.
+- Include proper HTTP status codes.
+
+### 🔹 Logging
+- Use **pino** (or Winston) for structured logging.
+- Configure logs for `development` (pretty print) and `production` (JSON, rotated files).
+- Log every request (method, URL, status, response time) with correlation/request ID.
+- Separate `error.log` and `combined.log` (or equivalent transport strategy).
+
+### 🔹 Security
+- Implement JWT authentication (access + refresh tokens).
+- Add rate limiting, CORS, Helmet, and sanitization middlewares.
+- Use role-based access control (buyer, seller, driver, admin).
+- Support Google & Facebook OAuth login.
+
+### 🔹 API Documentation
+- Auto-generate **Swagger/OpenAPI** from route schemas/controllers.
+- Ensure the Swagger file can be **exported to Postman Collection**.
+- Auto-update Swagger when new routes are added.
+
+### 🔹 Testing
+- Use **Jest + Supertest** for API integration tests.
+- Mock MongoDB with `mongodb-memory-server`.
+- Ensure tests cover auth, products, orders, and chat APIs.
+
+### 🔹 Developer Experience
+- Use `eslint` + `prettier` for linting/formatting.
+- Add Husky + lint-staged for pre-commit checks.
+- Provide `docker-compose.yml` for local MongoDB + app setup.
+- Include Postman collection export script.
+
+### 🔹 Deliverables
+- Output the **folder structure**.
+- Generate **starter code** for:
+  - `src/server.ts`
+  - `src/app.ts`
+  - `src/models/user.model.ts`
+  - `src/controllers/auth.controller.ts`
+  - `src/middlewares/error.middleware.ts`
+  - `src/config/logger.ts`
+  - Swagger/OpenAPI setup, plus script to export to Postman.
+- Show how Swagger gets auto-generated and exported to Postman.
+- Everything must follow **enterprise-grade standards** for maintainability and scalability.
+
+### ⛔️ Constraints
+- Use **ESM + TypeScript** only.
+- No deprecated libraries or patterns.
+- Prefer **Zod** for validation; if using other validators, justify briefly in comments.
+- Include minimal runnable examples; avoid placeholder-only stubs.
+
+### ✅ Output Format
+1) Project tree (code block).
+2) Code blocks for each required file (ready to paste).
+3) `package.json` scripts relevant to build, lint, test, docs, and postman export.
+4) Short instructions to run: dev, test, docs generation, postman export.
+
+Generate the complete Node.js + Express architecture starter code now.

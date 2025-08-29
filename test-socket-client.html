@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test Client</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .log {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Socket.IO Test Client</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: <span id="statusText">Disconnected</span>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="userId" placeholder="User ID (e.g., user123)" value="testuser123">
+            <button onclick="connectSocket()">Connect</button>
+            <button onclick="disconnectSocket()">Disconnect</button>
+        </div>
+        
+        <div class="controls">
+            <h3>Test Chat Functions</h3>
+            <input type="text" id="roomId" placeholder="Room ID" value="room123">
+            <button onclick="joinChat()">Join Chat</button>
+            <button onclick="leaveChat()">Leave Chat</button>
+        </div>
+        
+        <div class="controls">
+            <h3>Send Message</h3>
+            <input type="text" id="messageContent" placeholder="Message content" value="Hello, World!">
+            <button onclick="sendMessage()">Send Message</button>
+        </div>
+        
+        <h3>Event Log</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        const serverUrl = 'http://localhost:5001'; // Update this if your server runs on a different port
+        
+        function log(message, data = null) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            if (data) {
+                entry.innerHTML += `<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+        
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+        
+        function connectSocket() {
+            const userId = document.getElementById('userId').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            
+            if (socket && socket.connected) {
+                log('Already connected');
+                return;
+            }
+            
+            socket = io(serverUrl, {
+                query: { userId: userId },
+                transports: ['websocket', 'polling']
+            });
+            
+            // Connection events
+            socket.on('connect', () => {
+                log('Connected to server with socket ID: ' + socket.id);
+                updateStatus(true);
+            });
+            
+            socket.on('disconnect', () => {
+                log('Disconnected from server');
+                updateStatus(false);
+            });
+            
+            socket.on('connect_error', (error) => {
+                log('Connection error:', error.message);
+            });
+            
+            // Custom events
+            socket.on('is_online', (data) => {
+                log('User online status update:', data);
+            });
+            
+            socket.on('message_read', (data) => {
+                log('Message read:', data);
+            });
+            
+            socket.on('message_delivered', (data) => {
+                log('Message delivered:', data);
+            });
+            
+            socket.on('update_unread_count', (data) => {
+                log('Unread count updated:', data);
+            });
+            
+            socket.on('error', (data) => {
+                log('Error received:', data);
+            });
+            
+            socket.on('new_message', (data) => {
+                log('New message received:', data);
+            });
+        }
+        
+        function disconnectSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('Disconnected from server');
+            } else {
+                log('Not connected');
+            }
+        }
+        
+        function joinChat() {
+            if (!socket || !socket.connected) {
+                alert('Please connect first');
+                return;
+            }
+            const roomId = document.getElementById('roomId').value;
+            socket.emit('join_chat', { roomId: roomId });
+            log('Joining chat room: ' + roomId);
+        }
+        
+        function leaveChat() {
+            if (!socket || !socket.connected) {
+                alert('Please connect first');
+                return;
+            }
+            const roomId = document.getElementById('roomId').value;
+            socket.emit('leave_chat', { roomId: roomId });
+            log('Leaving chat room: ' + roomId);
+        }
+        
+        function sendMessage() {
+            if (!socket || !socket.connected) {
+                alert('Please connect first');
+                return;
+            }
+            const userId = document.getElementById('userId').value;
+            const roomId = document.getElementById('roomId').value;
+            const content = document.getElementById('messageContent').value;
+            
+            const messageData = {
+                chatId: roomId,
+                senderId: userId,
+                content: content,
+                message_type: 'text',
+                attachments: [],
+                status: 'sent',
+                sent_at: new Date(),
+                created_at: new Date(),
+                updated_at: new Date(),
+                _id: 'temp_' + Date.now()
+            };
+            
+            socket.emit('send_message', messageData);
+            log('Sending message:', messageData);
+        }
+        
+        // Initialize log
+        log('Socket.IO Test Client initialized');
+    </script>
+</body>
+</html>
