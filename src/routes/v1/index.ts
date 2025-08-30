@@ -11,6 +11,7 @@ import messageRoutes from './message.routes.js';
 import bankAccountRoutes from './bankAccount.routes.js';
 import socketTestRoutes from './socket-test.routes.js';
 import userRoutes from './user.routes.js';
+import contactRoutes from './contactus.routes.js'
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -43,6 +44,7 @@ router.use('/messages', messageRoutes);
 router.use('/bank-accounts', bankAccountRoutes);
 router.use('/socket', socketTestRoutes);
 router.use('/user', userRoutes);
+router.use('/contact',contactRoutes)
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);
@@ -168,6 +170,9 @@ router.get('/health', (_req, res) => {
       user: {
         profile: 'GET /api/v1/user/profile',
         updateProfile: 'PUT /api/v1/user/profile',
+      },
+      contact: {
+        create: 'POST /api/v1/contact',
       },
     },
     documentation: '/api-docs',

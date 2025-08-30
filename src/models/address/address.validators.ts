@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { AddressType } from './address.types.js';
+import { z } from 'zod'
+import { AddressType } from './address.types.js'
 
 /**
  * Address type options for form validation
@@ -8,23 +8,27 @@ export const addressTypeOptions = [
   { label: 'Billing', value: AddressType.BILLING },
   { label: 'Shipping', value: AddressType.SHIPPING },
   { label: 'Both', value: AddressType.BOTH },
-];
+]
 
 /**
  * Base address validation schema
  */
 const baseAddressSchema = z.object({
-  label: z
+  name: z
     .string()
     .trim()
-    .max(50, 'Label must not exceed 50 characters')
-    .optional(),
-  street: z
+    .min(1, 'Name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must not exceed 100 characters'),
+  phoneNumber: z
     .string()
     .trim()
-    .min(1, 'Street address is required')
-    .min(5, 'Street address must be at least 5 characters')
-    .max(200, 'Street address must not exceed 200 characters'),
+    .min(1, 'Phone number is required')
+    .regex(
+      /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,10}$/,
+      'Invalid phone number format'
+    ),
+
   city: z
     .string()
     .trim()
@@ -51,26 +55,32 @@ const baseAddressSchema = z.object({
     .max(20, 'ZIP code must not exceed 20 characters'),
   type: z.nativeEnum(AddressType, {
     errorMap: () => ({ message: 'Invalid address type' }),
-  }),
+  }).default(AddressType.SHIPPING),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  formattedAddress: z.string().trim().max(500).optional(),
+  location: z.string().trim().optional(),
   isDefault: z.boolean().default(false),
-});
+})
 
 /**
  * Create address validation schema
  */
-export const createAddressSchema = baseAddressSchema.extend({
-  userId: z
-    .string()
-    .min(1, 'User ID is required')
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format'),
-});
+export const createAddressSchema = z.object({
+  body: baseAddressSchema,
+})
 
 /**
  * Update address validation schema
  */
-export const updateAddressSchema = baseAddressSchema.partial().extend({
-  isActive: z.boolean().optional(),
-});
+export const updateAddressSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID format'),
+  }),
+  body: baseAddressSchema.partial().extend({
+    isActive: z.boolean().optional(),
+  }),
+})
 
 /**
  * Address query validation schema
@@ -102,22 +112,17 @@ export const addressQuerySchema = z.object({
     .enum(['createdAt', 'updatedAt', 'street', 'city', 'isDefault'])
     .optional()
     .default('createdAt'),
-  sortOrder: z
-    .enum(['asc', 'desc'])
-    .optional()
-    .default('desc'),
-});
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+})
 
 /**
  * Set default address validation schema
  */
 export const setDefaultAddressSchema = z.object({
-  addressId: z
-    .string()
-    .min(1, 'Address ID is required')
-    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID format'),
-  type: z.nativeEnum(AddressType).optional(),
-});
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID format'),
+  }),
+})
 
 /**
  * Bulk address operations validation schema
@@ -128,7 +133,7 @@ export const bulkAddressOperationsSchema = z.object({
     .min(1, 'At least one address ID is required')
     .max(100, 'Cannot process more than 100 addresses at once'),
   operation: z.enum(['activate', 'deactivate', 'delete']),
-});
+})
 
 /**
  * Address search validation schema
@@ -150,7 +155,7 @@ export const addressSearchSchema = z.object({
     .max(50, 'Limit cannot exceed 50')
     .optional()
     .default(10),
-});
+})
 
 /**
  * Address import validation schema (for bulk operations)
@@ -162,7 +167,7 @@ export const addressImportSchema = z.object({
     .max(100, 'Cannot import more than 100 addresses at once'),
   overwrite: z.boolean().default(false),
   validateOnly: z.boolean().default(false),
-});
+})
 
 /**
  * Address export validation schema
@@ -175,7 +180,7 @@ export const addressExportSchema = z.object({
   type: z.nativeEnum(AddressType).optional(),
   format: z.enum(['json', 'csv', 'pdf']).default('json'),
   includeInactive: z.boolean().default(false),
-});
+})
 
 /**
  * Address statistics validation schema
@@ -188,4 +193,29 @@ export const addressStatisticsSchema = z.object({
   type: z.nativeEnum(AddressType).optional(),
   period: z.enum(['day', 'week', 'month', 'year', 'all']).default('all'),
   groupBy: z.enum(['type', 'country', 'state', 'city']).optional(),
-});
+})
+
+/**
+ * Get address validation schema (for params)
+ */
+export const getAddressSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID format'),
+  }),
+})
+
+/**
+ * Delete address validation schema (for params)
+ */
+export const deleteAddressSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID format'),
+  }),
+})
+
+/**
+ * Get user addresses validation schema (for query)
+ */
+export const getUserAddressesSchema = z.object({
+  query: addressQuerySchema,
+})

@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 import { IBankAccount, IBankAccountMethods, IBankAccountModel, AccountType } from './bankAccount.types.js';
-import * as bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export const BankAccountSchema = new Schema<IBankAccount, IBankAccountModel, IBankAccountMethods>(
   {
@@ -65,12 +65,15 @@ export const BankAccountSchema = new Schema<IBankAccount, IBankAccountModel, IBa
 BankAccountSchema.index({ user: 1, isActive: 1 });
 BankAccountSchema.index({ user: 1, isDefault: 1 });
 
-// Pre-save hook to encrypt sensitive data
+// Pre-save hook to format data
 BankAccountSchema.pre('save', async function (next) {
-  if (this.isModified('accountNumber')) {
-    // Encrypt account number for security
-    const salt = await bcrypt.genSalt(10);
-    this.accountNumber = await bcrypt.hash(this.accountNumber, salt);
+  // Store only last 4 digits of account number for display
+  // In production, you would store the full encrypted number separately
+  if (this.isModified('accountNumber') && this.accountNumber.length > 4) {
+    // Keep the last 4 digits visible, mask the rest
+    const lastFour = this.accountNumber.slice(-4);
+    const maskedLength = this.accountNumber.length - 4;
+    this.accountNumber = 'X'.repeat(maskedLength) + lastFour;
   }
   
   // Ensure SWIFT code is uppercase

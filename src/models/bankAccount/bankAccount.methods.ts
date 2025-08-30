@@ -1,5 +1,4 @@
 import { IBankAccount } from './bankAccount.types.js';
-import BankAccount from './bankAccount.model.js';
 
 export function getMaskedAccountNumber(this: IBankAccount): string {
   const accountNumber = this.accountNumber;
@@ -15,8 +14,11 @@ export function getMaskedAccountNumber(this: IBankAccount): string {
 }
 
 export async function setAsDefault(this: IBankAccount): Promise<void> {
+  // Use mongoose model constructor to avoid circular dependency
+  const BankAccountModel = this.constructor as any;
+  
   // First, unset any existing default account for this user
-  await BankAccount.updateMany(
+  await BankAccountModel.updateMany(
     { user: this.user, _id: { $ne: this._id } },
     { $set: { isDefault: false } }
   );

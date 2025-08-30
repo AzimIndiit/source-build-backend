@@ -75,7 +75,35 @@ export const sendBrevoEmail = async (data: any): Promise<any> => {
   }
 };
 
+/**
+ * Send password reset email with token link
+ */
+export const sendPasswordResetEmail = async (email: string, token: string): Promise<any> => {
+  try {
+    const resetLink = `${config.FRONTEND_URL}/auth/reset-password?token=${token}`;
+    
+    const emailData = {
+      email,
+      subject: 'Password Reset Request - Source Build',
+      name: email.split('@')[0], // Extract name from email if not provided
+      link: resetLink,
+      expiry: 15, // Token expiry in minutes
+      sender: 'mohdazimindiit@gmail.com',
+      senderName: 'Source Build'
+    };
+
+    const result = await sendEmail(emailData, 'reset-password.ejs');
+    logger.info('Password reset email sent', { email, resetLink });
+    
+    return result;
+  } catch (error) {
+    logger.error('Failed to send password reset email', { error, email });
+    throw new Error('Failed to send password reset email');
+  }
+};
+
 export default {
   sendEmail,
   sendBrevoEmail,
+  sendPasswordResetEmail,
 };

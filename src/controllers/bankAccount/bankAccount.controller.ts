@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { validate } from '@/middlewares/validation.middleware.js';
+import { validate, validateRequest } from '@/middlewares/validation.middleware.js';
 import catchAsync from '@utils/catchAsync.js';
 import ApiResponse from '@utils/ApiResponse.js';
 import ApiError from '@utils/ApiError.js';
@@ -16,7 +16,7 @@ import {
 import { CreateBankAccountDTO, UpdateBankAccountDTO } from '@models/bankAccount/bankAccount.types.js';
 
 export const createBankAccount = [
-  validate(createBankAccountSchema),
+  validate(createBankAccountSchema.shape.body, 'body'),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     const bankAccountData: CreateBankAccountDTO = req.body;
@@ -46,10 +46,11 @@ export const createBankAccount = [
 ];
 
 export const getUserBankAccounts = [
-  validate(getUserBankAccountsSchema),
+  // Skip validation for query params due to read-only issue
   catchAsync(async (req: Request, res: Response) => {
+    console.log('req.user', req.user)
     const userId = new Types.ObjectId(req.user?.id);
-    const { includeInactive } = req.query;
+    const { includeInactive } = req.query as { includeInactive?: string };
 
     let query: any = { user: userId };
     if (includeInactive !== 'true') {
@@ -57,13 +58,13 @@ export const getUserBankAccounts = [
     }
 
     const bankAccounts = await BankAccountModal.find(query).sort({ isDefault: -1, createdAt: -1 });
-
+console.log('bankAccounts', bankAccounts)
     return ApiResponse.success(res, bankAccounts, 'Bank accounts fetched successfully');
   }),
 ];
 
 export const getBankAccount = [
-  validate(getBankAccountSchema),
+  validate(getBankAccountSchema.shape.params, 'params'),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     const accountId = new Types.ObjectId(req.params['id']);
@@ -79,7 +80,10 @@ export const getBankAccount = [
 ];
 
 export const updateBankAccount = [
-  validate(updateBankAccountSchema),
+  validateRequest({
+    params: updateBankAccountSchema.shape.params,
+    body: updateBankAccountSchema.shape.body,
+  }),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     const accountId = new Types.ObjectId(req.params['id']);
@@ -107,7 +111,7 @@ export const updateBankAccount = [
 ];
 
 export const deleteBankAccount = [
-  validate(deleteBankAccountSchema),
+  validate(deleteBankAccountSchema.shape.params, 'params'),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     const accountId = new Types.ObjectId(req.params['id']);
@@ -139,10 +143,10 @@ export const deleteBankAccount = [
 ];
 
 export const setDefaultBankAccount = [
-  validate(setDefaultBankAccountSchema),
+  validate(setDefaultBankAccountSchema.shape.params, 'params'),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
-      const accountId = new Types.ObjectId(req.params['id']);
+    const accountId = new Types.ObjectId(req.params['id']);
 
     const bankAccount = await BankAccountModal.findByIdAndUser(accountId, userId);
 
@@ -150,6 +154,13 @@ export const setDefaultBankAccount = [
       throw ApiError.notFound('Bank account not found');
     }
 
+    // Unset all other defaults for this user
+    await BankAccountModal.updateMany(
+      { user: userId, _id: { $ne: accountId } },
+      { $set: { isDefault: false } }
+    );
+
+    // Set this account as default
     await bankAccount.setAsDefault();
 
     return ApiResponse.success(res, bankAccount, 'Default bank account updated successfully');
@@ -160,10 +171,26 @@ export const getDefaultBankAccount = [
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
 
-    const defaultAccount = await BankAccountModal .findDefaultAccount(userId);
+    const defaultAccount = await BankAccountModal.findOne({
+      user: userId,
+      isDefault: true,
+      isActive: true,
+    });
 
     if (!defaultAccount) {
-      return ApiResponse.success(res, null, 'No default bank account found');
+      // Try to find any active account
+      const anyAccount = await BankAccountModal.findOne({
+        user: userId,
+        isActive: true,
+      }).sort({ createdAt: -1 });
+
+      if (anyAccount) {
+        // Set it as default
+        await anyAccount.setAsDefault();
+        return ApiResponse.success(res, anyAccount, 'Default bank account fetched successfully');
+      }
+
+      return ApiResponse.success(res, null, 'No bank accounts found');
     }
 
     return ApiResponse.success(res, defaultAccount, 'Default bank account fetched successfully');

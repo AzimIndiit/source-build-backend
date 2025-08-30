@@ -95,13 +95,65 @@ const productSchema = new Schema<IProduct, IProductModel>(
         message: 'Invalid HEX color code',
       },
     },
-    locationAddress: {
-      type: String,
-      required: [true, 'Location address is required'],
-      trim: true,
-      minlength: [5, 'Location must be at least 5 characters'],
-      maxlength: [200, 'Location must not exceed 200 characters'],
-    },
+    locations: [{
+      address: {
+        type: String,
+        required: [true, 'Location address is required'],
+        trim: true,
+        minlength: [5, 'Location must be at least 5 characters'],
+        maxlength: [200, 'Location must not exceed 200 characters'],
+      },
+      coordinates: {
+        type: {
+          type: String,
+          enum: ['Point'],
+          default: 'Point',
+          required: true,
+        },
+        coordinates: {
+          type: [Number],
+          required: [true, 'Coordinates are required'],
+          validate: {
+            validator: function(coords: number[]) {
+              return coords.length === 2 && 
+                     coords[0] >= -180 && coords[0] <= 180 && 
+                     coords[1] >= -90 && coords[1] <= 90;
+            },
+            message: 'Invalid coordinates. Must be [longitude, latitude]',
+          },
+        },
+      },
+      city: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'City must not exceed 100 characters'],
+      },
+      state: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'State must not exceed 100 characters'],
+      },
+      country: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Country must not exceed 100 characters'],
+      },
+      postalCode: {
+        type: String,
+        trim: true,
+        maxlength: [20, 'Postal code must not exceed 20 characters'],
+      },
+      isDefault: {
+        type: Boolean,
+        default: false,
+      },
+      availabilityRadius: {
+        type: Number,
+        default: 10,
+        min: [0, 'Availability radius must be positive'],
+        max: [100, 'Availability radius must not exceed 100 km'],
+      },
+    }],
     productTag: [{
       type: String,
       trim: true,
@@ -209,6 +261,7 @@ const productSchema = new Schema<IProduct, IProductModel>(
 
 // Indexes for better query performance
 productSchema.index({ title: 'text', description: 'text', productTag: 'text' });
+productSchema.index({ 'locations.coordinates': '2dsphere' });
 productSchema.index({ price: 1, createdAt: -1 });
 productSchema.index({ seller: 1, status: 1 });
 productSchema.index({ category: 1, subCategory: 1, status: 1 });

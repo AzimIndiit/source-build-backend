@@ -39,6 +39,20 @@ export interface IMarketplaceOptions {
   delivery?: boolean;
 }
 
+export interface IProductLocation {
+  address: string;
+  coordinates: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  isDefault?: boolean;
+  availabilityRadius?: number;
+}
+
 export interface IProductBase {
   title: string;
   slug: string;
@@ -49,7 +63,7 @@ export interface IProductBase {
   quantity: number;
   brand: string;
   color: string;
-  locationAddress: string;
+  locations: IProductLocation[];
   productTag: string[];
   variants?: IVariant[];
   marketplaceOptions?: IMarketplaceOptions;
@@ -110,7 +124,7 @@ export interface CreateProductDTO {
   quantity: number;
   brand: string;
   color: string;
-  locationAddress: string;
+  locations: IProductLocation[];
   productTag: string[];
   variants?: IVariant[];
   marketplaceOptions?: IMarketplaceOptions;
@@ -161,4 +175,11 @@ export interface ProductFilterDTO {
   sort?: string;
   page?: number;
   limit?: number;
+  // Location-based filtering
+  latitude?: number;
+  longitude?: number;
+  maxDistance?: number;
+  city?: string;
+  state?: string;
+  country?: string;
 }

@@ -3,6 +3,7 @@ import UserModal  , { IUser, IUserProfile, UserRole, UserStatus, } from'@/models
 import config from '@config/index.js';
 import ApiError from '@utils/ApiError.js';
 import logger from '@config/logger.js';
+import emailService from './email.service.js';
 
 /**
  * Interface for login credentials
@@ -365,14 +366,85 @@ class AuthService {
 
       const token = user.generatePasswordResetToken();
       
-      // TODO: Send password reset email
-      // await emailService.sendPasswordResetEmail(user.email, token);
-      logger.info(`Password reset token for ${user.email}: ${token}`); // For development only
+      // Store the token hash in the database
+      const crypto = await import('crypto');
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+      
+      user.auth.passwordResetToken = hashedToken;
+      user.auth.passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour from now
+      await user.save();
+      
+      // Send password reset email
+      await emailService.sendPasswordResetEmail(user.email, token);
+      logger.info(`Password reset token generated for ${user.email}`);
 
       return token;
     } catch (error) {
       logger.error('Failed to generate password reset token', { error, email });
       throw error;
+    }
+  }
+
+  /**
+   * Verify password reset token
+   */
+  async verifyResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    try {
+      logger.info('Verifying password reset token');
+
+      // First verify JWT structure
+      let payload: ITokenPayload;
+      try {
+        payload = jwt.verify(token, config.JWT_SECRET) as ITokenPayload;
+      } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
+          return { 
+            valid: false, 
+            message: 'Token has expired. Please request a new password reset link.' 
+          };
+        }
+        return { 
+          valid: false, 
+          message: 'Invalid token. Please request a new password reset link.' 
+        };
+      }
+      
+      if (payload.type !== 'password_reset') {
+        return { 
+          valid: false, 
+          message: 'Invalid token type' 
+        };
+      }
+
+      // Hash the token to compare with database
+      const crypto = await import('crypto');
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find user with matching token that hasn't expired
+      const user = await UserModal.findOne({
+        _id: payload.id,
+        'auth.passwordResetToken': hashedToken,
+        'auth.passwordResetExpires': { $gt: new Date() }
+      });
+
+      if (!user) {
+        return { 
+          valid: false, 
+          message: 'Token is invalid or has expired. Please request a new password reset link.' 
+        };
+      }
+
+      logger.info('Password reset token is valid', { userId: user._id });
+      return { 
+        valid: true, 
+        message: 'Token is valid' 
+      };
+    } catch (error) {
+      logger.error('Error verifying reset token', { error });
+      return { 
+        valid: false, 
+        message: 'Failed to verify token' 
+      };
     }
   }
 
@@ -383,32 +455,61 @@ class AuthService {
     try {
       logger.info('Password reset attempt');
 
-      // Verify token
-      const payload = jwt.verify(token, config.JWT_SECRET) as ITokenPayload;
+      // Verify token JWT structure first
+      let payload: ITokenPayload;
+      try {
+        payload = jwt.verify(token, config.JWT_SECRET) as ITokenPayload;
+      } catch (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+          throw ApiError.badRequest('Invalid or expired reset token');
+        }
+        throw error;
+      }
       
       if (payload.type !== 'password_reset') {
         throw ApiError.badRequest('Invalid token type');
       }
 
-      const user = await UserModal.findById(payload.id).select('+password');
+      // Hash the token to compare with database
+      const crypto = await import('crypto');
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find user with matching token that hasn't expired
+      const user = await UserModal.findOne({
+        _id: payload.id,
+        'auth.passwordResetToken': hashedToken,
+        'auth.passwordResetExpires': { $gt: new Date() }
+      }).select('+password');
+
       if (!user) {
-        throw ApiError.notFound('User not found');
+        throw ApiError.badRequest('Token is invalid or has expired');
       }
 
       // Update password
       user.password = newPassword;
       await user.save();
+      
+      // Clear the reset token to prevent reuse using atomic update
+      await UserModal.updateOne(
+        { _id: user._id },
+        { 
+          $unset: { 
+            'auth.passwordResetToken': 1,
+            'auth.passwordResetExpires': 1 
+          }
+        }
+      );
 
       // Clear all refresh tokens to force re-login
       await user.clearRefreshTokens();
 
       logger.info('Password reset successfully', { userId: user._id });
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        throw ApiError.badRequest('Invalid or expired reset token');
+      if (error instanceof ApiError) {
+        throw error;
       }
       logger.error('Password reset failed', { error });
-      throw error;
+      throw ApiError.internal('Failed to reset password');
     }
   }
 

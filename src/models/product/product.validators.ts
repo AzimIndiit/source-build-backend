@@ -114,11 +114,38 @@ export const createProductSchema = z.object({
         /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
         'Please enter a valid HEX color code (e.g., #FF0000)'
       ),
-    locationAddress: z
-      .string()
-      .trim()
-      .min(5, 'Location must be at least 5 characters')
-      .max(200, 'Location must not exceed 200 characters'),
+    locations: z
+      .array(
+        z.object({
+          address: z
+            .string()
+            .trim()
+            .min(5, 'Location must be at least 5 characters')
+            .max(200, 'Location must not exceed 200 characters'),
+          coordinates: z.object({
+            type: z.literal('Point').default('Point'),
+            coordinates: z
+              .tuple([z.number(), z.number()])
+              .refine(
+                ([lng, lat]) => lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90,
+                'Invalid coordinates. Must be [longitude, latitude]'
+              ),
+          }),
+          city: z.string().trim().max(100, 'City must not exceed 100 characters').optional(),
+          state: z.string().trim().max(100, 'State must not exceed 100 characters').optional(),
+          country: z.string().trim().max(100, 'Country must not exceed 100 characters').optional(),
+          postalCode: z.string().trim().max(20, 'Postal code must not exceed 20 characters').optional(),
+          isDefault: z.boolean().default(false).optional(),
+          availabilityRadius: z
+            .number()
+            .min(0, 'Availability radius must be positive')
+            .max(100, 'Availability radius must not exceed 100 km')
+            .default(10)
+            .optional(),
+        })
+      )
+      .min(1, 'At least one location is required')
+      .max(10, 'Maximum 10 locations allowed'),
     productTag: z
       .array(
         z
@@ -232,11 +259,38 @@ export const updateProductSchema = z.object({
         'Please enter a valid HEX color code (e.g., #FF0000)'
       )
       .optional(),
-    locationAddress: z
-      .string()
-      .trim()
-      .min(5, 'Location must be at least 5 characters')
-      .max(200, 'Location must not exceed 200 characters')
+    locations: z
+      .array(
+        z.object({
+          address: z
+            .string()
+            .trim()
+            .min(5, 'Location must be at least 5 characters')
+            .max(200, 'Location must not exceed 200 characters'),
+          coordinates: z.object({
+            type: z.literal('Point').default('Point'),
+            coordinates: z
+              .tuple([z.number(), z.number()])
+              .refine(
+                ([lng, lat]) => lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90,
+                'Invalid coordinates. Must be [longitude, latitude]'
+              ),
+          }),
+          city: z.string().trim().max(100, 'City must not exceed 100 characters').optional(),
+          state: z.string().trim().max(100, 'State must not exceed 100 characters').optional(),
+          country: z.string().trim().max(100, 'Country must not exceed 100 characters').optional(),
+          postalCode: z.string().trim().max(20, 'Postal code must not exceed 20 characters').optional(),
+          isDefault: z.boolean().default(false).optional(),
+          availabilityRadius: z
+            .number()
+            .min(0, 'Availability radius must be positive')
+            .max(100, 'Availability radius must not exceed 100 km')
+            .default(10)
+            .optional(),
+        })
+      )
+      .min(1, 'At least one location is required')
+      .max(10, 'Maximum 10 locations allowed')
       .optional(),
     productTag: z
       .array(
@@ -295,6 +349,13 @@ export const getProductsSchema = z.object({
     sort: z.string().optional(),
     page: z.string().transform(Number).pipe(z.number().min(1)).optional().default('1'),
     limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).optional().default('20'),
+    // Location-based filtering
+    latitude: z.string().transform(Number).pipe(z.number().min(-90).max(90)).optional(),
+    longitude: z.string().transform(Number).pipe(z.number().min(-180).max(180)).optional(),
+    maxDistance: z.string().transform(Number).pipe(z.number().min(0).max(100)).optional().default('10'),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

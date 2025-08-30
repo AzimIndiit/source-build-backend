@@ -15,12 +15,16 @@ export enum AddressType {
 export interface IAddress {
   _id?: string;
   userId: string;
-  label?: string;
-  street: string;
+  name: string;
+  phoneNumber: string;
+location: string;
   city: string;
   state: string;
   country: string;
   zipCode: string;
+  latitude?: number;
+  longitude?: number;
+  formattedAddress?: string;
   isDefault: boolean;
   type: AddressType;
   isActive: boolean;
@@ -48,12 +52,16 @@ export interface IAddressModel extends Model<IAddressDocument> {
  */
 export interface ICreateAddressData {
   userId: string;
-  label?: string;
-  street: string;
+  name: string;
+  phoneNumber: string;
+  location: string;
   city: string;
   state: string;
   country: string;
   zipCode: string;
+  latitude?: number;
+  longitude?: number;
+  formattedAddress?: string;
   isDefault: boolean;
   type: AddressType;
 }
@@ -62,12 +70,16 @@ export interface ICreateAddressData {
  * Update address data interface
  */
 export interface IUpdateAddressData {
-  label?: string;
-  street?: string;
+  name?: string;
+  phoneNumber?: string;
+  location?: string;
   city?: string;
   state?: string;
   country?: string;
   zipCode?: string;
+  latitude?: number;
+  longitude?: number;
+  formattedAddress?: string;
   isDefault?: boolean;
   type?: AddressType;
   isActive?: boolean;

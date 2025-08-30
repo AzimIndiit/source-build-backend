@@ -5,7 +5,6 @@ import { ContactUsStatus } from './contactus.types.js';
  * Create contact us submission validator
  */
 export const createContactUsSchema = z.object({
-  body: z.object({
     firstName: z
       .string()
       .trim()
@@ -28,7 +27,6 @@ export const createContactUsSchema = z.object({
       .trim()
       .min(10, 'Message must be at least 10 characters')
       .max(1000, 'Message must not exceed 1000 characters'),
-  }),
 });
 
 /**
@@ -110,7 +108,7 @@ export const addNoteSchema = z.object({
 /**
  * Type exports for use in TypeScript
  */
-export type CreateContactUsInput = z.infer<typeof createContactUsSchema>['body'];
+export type CreateContactUsInput = z.infer<typeof createContactUsSchema>
 export type UpdateContactUsInput = z.infer<typeof updateContactUsSchema>['body'];
 export type ContactUsFilterInput = z.infer<typeof contactUsFilterSchema>['query'];
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>['body'];

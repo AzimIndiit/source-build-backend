@@ -228,9 +228,8 @@ registerData={...registerData,firstName:req.body.firstName,lastName:req.body.las
     return ApiResponse.created(res, {
       user,
       tokens,
-      otpSent,
-      message: 'Registration successful. Please verify your email.',
-    }, 'User registered successfully');
+      otpSent
+    }, 'Registration successful. Please verify your email.');
   })
 ];
 
@@ -366,6 +365,25 @@ export const requestPasswordReset = [
     );
   })
 ];
+
+/**
+ * Verify reset token
+ */
+export const verifyResetToken = catchAsync(async (req: Request, res: Response) => {
+  const { token } = req.body;
+
+  if (!token || typeof token !== 'string') {
+    return ApiResponse.badRequest(res, 'Token is required');
+  }
+
+  const result = await authService.verifyResetToken(token);
+
+  if (result.valid) {
+    return ApiResponse.success(res, { valid: true }, result.message || 'Token is valid');
+  } else {
+    return ApiResponse.badRequest(res, result.message || 'Invalid or expired token');
+  }
+});
 
 /**
  * Reset password
@@ -581,6 +599,7 @@ export default {
   logout,
   logoutFromAllDevices,
   requestPasswordReset,
+  verifyResetToken,
   resetPassword,
   googleLogin,
   googleCallback,

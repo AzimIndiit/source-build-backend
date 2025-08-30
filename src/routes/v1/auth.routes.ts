@@ -976,6 +976,56 @@ router.post('/forgot-password', authController.requestPasswordReset)
 
 /**
  * @swagger
+ * /api/v1/auth/verify-reset-token:
+ *   post:
+ *     summary: Verify password reset token
+ *     description: Verify if a password reset token is valid
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The password reset token to verify
+ *           example:
+ *             token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Token is valid
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     valid:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Invalid or expired token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/verify-reset-token', authController.verifyResetToken)
+
+/**
+ * @swagger
  * /api/v1/auth/reset-password:
  *   post:
  *     summary: Reset password

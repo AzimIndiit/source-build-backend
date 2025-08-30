@@ -402,16 +402,10 @@ export const changePasswordSchema = z
 /**
  * Reset password input validator
  */
-export const resetPasswordSchema = z
-  .object({
-    token: z.string().min(1, 'Reset token is required'),
-    password: passwordValidation,
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  password: passwordValidation,
+});
 
 /**
  * Forgot password input validator

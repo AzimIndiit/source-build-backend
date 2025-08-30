@@ -1,5 +1,5 @@
-import { Schema } from 'mongoose';
-import { IAddressDocument, IAddressModel, AddressType } from './address.types.js';
+import { Schema } from 'mongoose'
+import { IAddressDocument, IAddressModel, AddressType } from './address.types.js'
 
 /**
  * Address schema for MongoDB
@@ -11,40 +11,58 @@ export const addressSchema = new Schema<IAddressDocument, IAddressModel>(
       required: [true, 'User ID is required'],
       index: true,
     },
-    label: {
+    name: {
       type: String,
+      required: [true, 'Name is required'],
       trim: true,
-      maxlength: [50, 'Label cannot exceed 50 characters'],
+      maxlength: [100, 'Name cannot exceed 100 characters'],
     },
-    street: {
+    phoneNumber: {
       type: String,
-      required: [true, 'Street address is required'],
+      required: [true, 'Phone number is required'],
       trim: true,
-      maxlength: [200, 'Street address cannot exceed 200 characters'],
+      maxlength: [20, 'Phone number cannot exceed 20 characters'],
+    },
+
+    location: {
+      type: String,
+      trim: true,
     },
     city: {
       type: String,
-      required: [true, 'City is required'],
       trim: true,
       maxlength: [100, 'City cannot exceed 100 characters'],
     },
     state: {
       type: String,
-      required: [true, 'State is required'],
       trim: true,
       maxlength: [100, 'State cannot exceed 100 characters'],
     },
     country: {
       type: String,
-      required: [true, 'Country is required'],
       trim: true,
       maxlength: [100, 'Country cannot exceed 100 characters'],
     },
     zipCode: {
       type: String,
-      required: [true, 'ZIP code is required'],
       trim: true,
       maxlength: [20, 'ZIP code cannot exceed 20 characters'],
+    },
+    latitude: {
+      type: Number,
+      min: [-90, 'Invalid latitude'],
+      max: [90, 'Invalid latitude'],
+    },
+    longitude: {
+      type: Number,
+      min: [-180, 'Invalid longitude'],
+      max: [180, 'Invalid longitude'],
+    },
+
+    formattedAddress: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Formatted address cannot exceed 500 characters'],
     },
     isDefault: {
       type: Boolean,
@@ -69,21 +87,25 @@ export const addressSchema = new Schema<IAddressDocument, IAddressModel>(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
-);
+)
 
 // Compound indexes for efficient querying
-addressSchema.index({ userId: 1, type: 1 });
-addressSchema.index({ userId: 1, isDefault: 1 });
-addressSchema.index({ userId: 1, isActive: 1 });
+addressSchema.index({ userId: 1, type: 1 })
+addressSchema.index({ userId: 1, isDefault: 1 })
+addressSchema.index({ userId: 1, isActive: 1 })
 
 // Text index for search functionality
 addressSchema.index({
+  name: 'text',
   street: 'text',
   city: 'text',
   state: 'text',
   country: 'text',
   zipCode: 'text',
-});
+})
+
+// Geospatial index for location-based queries
+addressSchema.index({ latitude: 1, longitude: 1 })
 
 /**
  * Pre-save middleware to handle default address logic
@@ -99,20 +121,20 @@ addressSchema.pre('save', async function (next) {
         isDefault: true,
       },
       { isDefault: false }
-    );
+    )
   }
-  
-  next();
-});
+
+  next()
+})
 
 /**
  * Pre-update middleware to handle default address logic
  */
 addressSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany'], async function (next) {
-  const update = this.getUpdate() as any;
-  
+  const update = this.getUpdate() as any
+
   if (update.isDefault) {
-    const filter = this.getFilter();
+    const filter = this.getFilter()
     await this.model.updateMany(
       {
         userId: (filter as any).userId,
@@ -121,52 +143,56 @@ addressSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany'], async functio
         isDefault: true,
       },
       { isDefault: false }
-    );
+    )
   }
-  
-  next();
-});
+
+  next()
+})
 
 /**
  * Static method to find addresses by user ID
  */
-(addressSchema.statics as any).findByUserId = async function (userId: string) {
-  return this.find({ userId, isActive: true }).sort({ isDefault: -1, createdAt: -1 });
-};
+;(addressSchema.statics as any).findByUserId = async function (userId: string) {
+  return this.find({ userId, isActive: true }).sort({ isDefault: -1, createdAt: -1 })
+}
 
 /**
  * Static method to find default address by user ID and type
  */
-(addressSchema.statics as any).findDefaultByUserId = async function (userId: string, type?: AddressType) {
-  const filter: any = { userId, isDefault: true, isActive: true };
+;(addressSchema.statics as any).findDefaultByUserId = async function (
+  userId: string,
+  type?: AddressType
+) {
+  const filter: any = { userId, isDefault: true, isActive: true }
   if (type) {
-    filter.type = type;
+    filter.type = type
   }
-  return this.findOne(filter);
-};
+  return this.findOne(filter)
+}
 
 /**
  * Static method to set an address as default
  */
-(addressSchema.statics as any).setDefaultAddress = async function (userId: string, addressId: string, type?: AddressType) {
-  const address = await this.findById(addressId);
+;(addressSchema.statics as any).setDefaultAddress = async function (
+  userId: string,
+  addressId: string,
+  type?: AddressType
+) {
+  const address = await this.findById(addressId)
   if (!address || address.userId !== userId) {
-    throw new Error('Address not found or unauthorized');
+    throw new Error('Address not found or unauthorized')
   }
 
   // Unset other default addresses of the same type
-  const filter: any = { userId, isDefault: true, isActive: true };
+  const filter: any = { userId, isDefault: true, isActive: true }
   if (type) {
-    filter.type = type;
+    filter.type = type
   } else {
-    filter.type = address.type;
+    filter.type = address.type
   }
-  
-  await this.updateMany(
-    { ...filter, _id: { $ne: addressId } },
-    { isDefault: false }
-  );
+
+  await this.updateMany({ ...filter, _id: { $ne: addressId } }, { isDefault: false })
 
   // Set this address as default
-  await this.findByIdAndUpdate(addressId, { isDefault: true });
-};
+  await this.findByIdAndUpdate(addressId, { isDefault: true })
+}
