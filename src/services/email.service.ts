@@ -102,8 +102,38 @@ export const sendPasswordResetEmail = async (email: string, token: string): Prom
   }
 };
 
+/**
+ * Send welcome email to new users
+ */
+export const sendWelcomeEmail = async (email: string, name: string): Promise<any> => {
+  try {
+    const currentYear = new Date().getFullYear();
+    
+    const emailData = {
+      email,
+      subject: 'Welcome to Source Build - Your Account is Ready!',
+      name: name || email.split('@')[0], // Use provided name or extract from email
+      dashboardUrl: `${config.FRONTEND_URL}/`,
+      privacyUrl: `${config.FRONTEND_URL}/privacy`,
+      termsUrl: `${config.FRONTEND_URL}/terms`,
+      year: currentYear,
+      sender: 'mohdazimindiit@gmail.com',
+      senderName: 'Source Build Team'
+    };
+
+    const result = await sendEmail(emailData, 'welcome.ejs');
+    logger.info('Welcome email sent successfully', { email, name });
+    
+    return result;
+  } catch (error) {
+    logger.error('Failed to send welcome email', { error, email });
+    throw new Error('Failed to send welcome email');
+  }
+};
+
 export default {
   sendEmail,
   sendBrevoEmail,
   sendPasswordResetEmail,
+  sendWelcomeEmail,
 };

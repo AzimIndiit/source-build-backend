@@ -264,7 +264,7 @@ export class ProductLocationService {
     }
 
     // Check each location for availability
-    for (const location of product.locations) {
+    for (const location of product.locationIds) {
       const distance = this.calculateDistance(
         latitude,
         longitude,

@@ -13,17 +13,54 @@ const ShippingAddressSchema = z.object({
 });
 
 const OrderProductSchema = z.object({
-  product: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product ID'),
+  id: z.string().min(1, 'Product ID is required'),
+  title: z.string().min(1, 'Product title is required'),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
   price: z.number().min(0, 'Price cannot be negative'),
+  deliveryDate: z.string().optional(),
+  image: z.string().optional(),
+  productRef: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product reference').optional(),
+});
+
+const ReviewInfoSchema = z.object({
+  rating: z.number().min(1).max(5),
+  review: z.string().min(1).max(1000),
+  reviewedAt: z.date().optional(),
+});
+
+const InfoSchema = z.object({
+  userRef: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user reference'),
+  reviewRef: ReviewInfoSchema.optional(),
+});
+
+const PaymentDetailsSchema = z.object({
+  type: z.string().default('Credit Card'),
+  cardType: z.enum(['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER']).optional(),
+  cardNumber: z.string().optional(),
+  method: z.nativeEnum(PaymentMethod).optional(),
+  status: z.nativeEnum(PaymentStatus).optional(),
+});
+
+const OrderSummarySchema = z.object({
+  shippingAddress: ShippingAddressSchema,
+  proofOfDelivery: z.string().optional(),
+  paymentMethod: PaymentDetailsSchema,
+  subTotal: z.number().min(0),
+  shippingFee: z.number().min(0),
+  marketplaceFee: z.number().min(0),
+  taxes: z.number().min(0),
+  total: z.number().min(0),
 });
 
 export const createOrderSchema = z.object({
-    customer: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid customer ID').optional(),
+    orderNumber: z.string().optional(),
+    customer: InfoSchema,
+    driver: InfoSchema.optional(),
     products: z.array(OrderProductSchema).min(1, 'At least one product is required'),
-    shippingAddress: ShippingAddressSchema,
-    billingAddress: ShippingAddressSchema.optional(),
-    paymentMethod: z.nativeEnum(PaymentMethod),
+    date: z.string().optional(),
+    amount: z.number().min(0).optional(),
+    status: z.nativeEnum(OrderStatus).default(OrderStatus.PENDING),
+    orderSummary: OrderSummarySchema,
     deliveryInstructions: z.string().max(500).optional(),
     notes: z.string().max(1000).optional(),
     estimatedDeliveryDate: z.string().datetime().optional(),
@@ -64,6 +101,7 @@ export const initiateRefundSchema = z.object({
 export const addReviewSchema = z.object({
     rating: z.number().int().min(1).max(5),
     review: z.string().min(1, 'Review is required').max(1000),
+    reviewedAt: z.string().datetime().optional(),
 });
 
 export const orderFilterSchema = z.object({
@@ -87,7 +125,7 @@ export const orderIdSchema = z.object({
 });
 
 export const orderNumberSchema = z.object({
-    orderNumber: z.string().regex(/^ORD\d{12}$/, 'Invalid order number format'),
+    orderNumber: z.string().optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

@@ -6,7 +6,20 @@ import ApiResponse from '@utils/ApiResponse.js';
 import ApiError from '@utils/ApiError.js';
 import ProductModal from '@models/product/product.model.js';
 import { CreateProductDTO, UpdateProductDTO, ProductStatus } from '@models/product/product.types.js';
-import { getProductsSchema, getProductBySlugSchema, createProductSchema } from '@models/product/product.validators.js';
+import { getProductsSchema, getProductBySlugSchema, createProductSchema, createProductDraftSchema } from '@models/product/product.validators.js';
+
+export const createProductDraft = [validate(createProductDraftSchema), catchAsync(async (req: Request, res: Response) => {
+  const productData = req.body;
+  const product = await ProductModal.create({
+    ...productData,
+    seller: req.user?.id,
+    status:ProductStatus.DRAFT,
+  });
+
+  await product.populate('seller', 'displayName email avatar');
+
+  return ApiResponse.created(res, product, 'Product draft created successfully');
+})];
 
 export const createProduct = [validate(createProductSchema), catchAsync(async (req: Request, res: Response) => {
   const productData: CreateProductDTO = req.body;
@@ -14,7 +27,7 @@ export const createProduct = [validate(createProductSchema), catchAsync(async (r
   const product = await ProductModal.create({
     ...productData,
     seller: req.user?.id,
-    status: productData.status || ProductStatus.DRAFT,
+    status:ProductStatus.ACTIVE,
   });
 
   await product.populate('seller', 'displayName email avatar');
@@ -23,14 +36,18 @@ export const createProduct = [validate(createProductSchema), catchAsync(async (r
 })];
 
 
-export const getProducts = [validate(getProductsSchema),catchAsync(async (req: Request, res: Response) => {
+export const getProducts = [validate(getProductsSchema, 'query'),catchAsync(async (req: Request, res: Response) => {
   const query = req.query;
-
+  const user = req.user?.id || null;
   const page = parseInt(String(query['page'] || '1')) || 1;
-  const limit = parseInt(String(query['limit'] || '20')) || 20;
+  const limit = parseInt(String(query['limit'] || '10')) || 10;
   const skip = (page - 1) * limit;
 
   const filter: any = {};
+
+   if(user){
+    filter.seller = user;
+   }
 
   // ✅ Category, brand, seller, etc. (still supported)
   if (query['category']) filter.category = query['category'];
@@ -66,10 +83,12 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
   }
 
   // ✅ Popularity filter mapping
-  if (query['popularity']) {
-    const popularity = Array.isArray(query['popularity'])
-      ? query['popularity']
-      : [query['popularity']];
+  // Handle both 'popularity' and 'popularity[]' parameter names
+  const popularityParam = query['popularity'] || query['popularity[]'];
+  if (popularityParam) {
+    const popularity = Array.isArray(popularityParam)
+      ? popularityParam
+      : [popularityParam];
 
     if (popularity.includes('featured')) filter.featured = true;
     // "best-selling", "most-viewed", "most-reviewed", "top-rated", "trending"
@@ -77,21 +96,25 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
   }
 
   // ✅ Availability filter
-  if (query['availability']) {
-    const availability = Array.isArray(query['availability'])
-      ? query['availability']
-      : [query['availability']];
+  // Handle both 'availability' and 'availability[]' parameter names
+  const availabilityParam = query['availability'] || query['availability[]'];
+  if (availabilityParam) {
+    const availability = Array.isArray(availabilityParam)
+      ? availabilityParam
+      : [availabilityParam];
 
-    if (availability.includes('delivery')) filter.deliveryAvailable = true;
-    if (availability.includes('shipping')) filter.shippingAvailable = true;
-    if (availability.includes('pickup')) filter.pickupAvailable = true;
+    if (availability.includes('delivery')) filter['marketplaceOptions.delivery'] = true;
+    if (availability.includes('shipping')) filter['marketplaceOptions.shipping'] = true;
+    if (availability.includes('pickup')) filter['marketplaceOptions.pickup'] = true;
   }
 
   // ✅ Ready time
-  if (query['readyTime']) {
-    const readyTime = Array.isArray(query['readyTime'])
-      ? query['readyTime']
-      : [query['readyTime']];
+  // Handle both 'readyTime' and 'readyTime[]' parameter names
+  const readyTimeParam = query['readyTime'] || query['readyTime[]'];
+  if (readyTimeParam) {
+    const readyTime = Array.isArray(readyTimeParam)
+      ? readyTimeParam
+      : [readyTimeParam];
 
     if (readyTime.includes('next-day')) {
       filter.readyBy = { $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) };
@@ -101,14 +124,22 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
     }
   }
 
+  // ✅ Location filter
+  if (query['location']) {
+    if (query['location'] !== 'all' && query['location'] !== 'All Locations') {
+      filter.locationIds = query['location'];
+    }
+  }
+
   // ✅ Sorting
   let sortOptions: any = { createdAt: -1 }; // default
 
   // --- Popularity Sorting ---
-  if (query['popularity']) {
-    const pop = Array.isArray(query['popularity'])
-      ? query['popularity']
-      : [query['popularity']];
+  // Handle both 'popularity' and 'popularity[]' parameter names
+  if (popularityParam) {
+    const pop = Array.isArray(popularityParam)
+      ? popularityParam
+      : [popularityParam];
 
     if (pop.includes('best-selling')) sortOptions = { salesCount: -1 };
     if (pop.includes('most-viewed')) sortOptions = { viewsCount: -1 };
@@ -118,10 +149,12 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
   }
 
   // --- Newest Sorting ---
-  if (query['newest']) {
-    const newest = Array.isArray(query['newest'])
-      ? query['newest']
-      : [query['newest']];
+  // Handle both 'newest' and 'newest[]' parameter names
+  const newestParam = query['newest'] || query['newest[]'];
+  if (newestParam) {
+    const newest = Array.isArray(newestParam)
+      ? newestParam
+      : [newestParam];
 
     if (newest.includes('recently-updated')) sortOptions = { updatedAt: -1 };
     if (newest.includes('featured-new')) {
@@ -142,22 +175,33 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
   if (query['pricing'] === 'high-to-low') sortOptions = { price: -1 };
   if (query['pricing'] === 'low-to-high') sortOptions = { price: 1 };
 
-  // ✅ Fetch products
-  const [products, total] = await Promise.all([
+  // ✅ Fetch products and available locations
+  const [products, total, locationIds] = await Promise.all([
     ProductModal.find(filter)
       .populate('seller', 'displayName email avatar')
+      .populate('locationIds')
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
       .lean(),
     ProductModal.countDocuments(filter),
+    ProductModal.distinct('locationIds'),
   ]);
+
+  // Populate the location details
+  const Address = (await import('../../models/address/address.model.js')).default;
+  const availableLocations = await Address.find({ _id: { $in: locationIds } })
+    .select('city state country displayName')
+    .lean();
 
   const totalPages = Math.ceil(total / limit);
 
   return ApiResponse.successWithPagination(
     res,
-    products,
+    { 
+      products, 
+      availableLocations 
+    },
     {
       page,
       limit,
@@ -171,7 +215,28 @@ export const getProducts = [validate(getProductsSchema),catchAsync(async (req: R
 })];
 
 
-export const getProductBySlug = [validate(getProductBySlugSchema), catchAsync(async (req: Request, res: Response) => {
+export const getProductById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!Types.ObjectId.isValid(id as string)) {
+    throw ApiError.badRequest('Invalid product ID');
+  }
+
+  const product = await ProductModal.findById(id)
+    .populate('seller', 'displayName email avatar');
+
+  if (!product) {
+    throw ApiError.notFound('Product not found');
+  }
+
+  return ApiResponse.success(
+    res,
+    product,
+    'Product retrieved successfully'
+  );
+});
+
+export const getProductBySlug = [validate(getProductBySlugSchema, 'params'), catchAsync(async (req: Request, res: Response) => {
   const  slug: string  = req.params['slug'] as string;
 
   if (!slug) {
@@ -179,7 +244,8 @@ export const getProductBySlug = [validate(getProductBySlugSchema), catchAsync(as
   }
 
   const product = await ProductModal.findOne({ slug })
-    .populate('seller', 'displayName email avatar');
+    .populate('seller', 'displayName email avatar')
+    .populate('locationIds');
 
   if (!product) {
     throw ApiError.notFound('Product not found');
@@ -213,6 +279,7 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
   }
 
   Object.assign(product, updateData);
+  product.status=ProductStatus.ACTIVE;
   await product.save();
 
   await product.populate('seller', 'displayName email avatar');

@@ -67,7 +67,58 @@ const marketplaceOptionsSchema = z.object({
   delivery: z.boolean().optional(),
 });
 
+const dimensionsSchema = z.object({
+  width: z.string().optional(),
+  length: z.string().optional(),
+  height: z.string().optional(),
+  unit: z.enum(['inches', 'cm', 'feet', 'meters']).optional().default('inches'),
+}).optional();
+
+const pickupHoursSchema = z.union([
+  z.string().max(100, 'Pickup hours must not exceed 100 characters'),
+  z.object({
+    monday: z.object({ open: z.string(), close: z.string() }).optional(),
+    tuesday: z.object({ open: z.string(), close: z.string() }).optional(),
+    wednesday: z.object({ open: z.string(), close: z.string() }).optional(),
+    thursday: z.object({ open: z.string(), close: z.string() }).optional(),
+    friday: z.object({ open: z.string(), close: z.string() }).optional(),
+    saturday: z.object({ open: z.string(), close: z.string() }).optional(),
+    sunday: z.object({ open: z.string(), close: z.string() }).optional(),
+  })
+]).optional();
+
+export const createProductDraftSchema = z.object({
+    title: z
+      .string()
+      .trim()
+      .min(3, 'Title must be at least 3 characters')
+      .max(100, 'Title must not exceed 100 characters'),
+    images: z
+      .array(z.string())
+      .min(1, 'At least one image is required'),
+    status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.DRAFT),
+    price: z.number().optional(),
+    description: z.string().optional(),
+    category: z.string().optional(),
+    subCategory: z.string().optional(),
+    quantity: z.number().optional(),
+    brand: z.string().optional(),
+    color: z.string().optional(),
+    locationIds: z.array(z.string()).optional(),
+    productTag: z.array(z.string()).optional(),
+    variants: z.array(variantSchema).optional(),
+    marketplaceOptions: marketplaceOptionsSchema.optional(),
+    pickupHours: pickupHoursSchema,
+    shippingPrice: z.number().optional(),
+    readyByDate: z.string().datetime().optional().or(z.date().optional()),
+    readyByTime: z.string().optional(),
+    discount: discountSchema.optional(),
+    dimensions: dimensionsSchema,
+    availabilityRadius: z.number().optional(),
+});
+
 export const createProductSchema = z.object({
+    slug: z.string().optional(), // Slug is auto-generated from title
     title: z
       .string()
       .trim()
@@ -114,36 +165,8 @@ export const createProductSchema = z.object({
         /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
         'Please enter a valid HEX color code (e.g., #FF0000)'
       ),
-    locations: z
-      .array(
-        z.object({
-          address: z
-            .string()
-            .trim()
-            .min(5, 'Location must be at least 5 characters')
-            .max(200, 'Location must not exceed 200 characters'),
-          coordinates: z.object({
-            type: z.literal('Point').default('Point'),
-            coordinates: z
-              .tuple([z.number(), z.number()])
-              .refine(
-                ([lng, lat]) => lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90,
-                'Invalid coordinates. Must be [longitude, latitude]'
-              ),
-          }),
-          city: z.string().trim().max(100, 'City must not exceed 100 characters').optional(),
-          state: z.string().trim().max(100, 'State must not exceed 100 characters').optional(),
-          country: z.string().trim().max(100, 'Country must not exceed 100 characters').optional(),
-          postalCode: z.string().trim().max(20, 'Postal code must not exceed 20 characters').optional(),
-          isDefault: z.boolean().default(false).optional(),
-          availabilityRadius: z
-            .number()
-            .min(0, 'Availability radius must be positive')
-            .max(100, 'Availability radius must not exceed 100 km')
-            .default(10)
-            .optional(),
-        })
-      )
+    locationIds: z
+      .array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID'))
       .min(1, 'At least one location is required')
       .max(10, 'Maximum 10 locations allowed'),
     productTag: z
@@ -161,23 +184,39 @@ export const createProductSchema = z.object({
       .min(1, 'At least one product tag is required')
       .max(10, 'Maximum 10 tags allowed'),
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
-    marketplaceOptions: marketplaceOptionsSchema.optional(),
-    pickupHours: z
-      .string()
-      .trim()
-      .max(100, 'Pickup hours must not exceed 100 characters')
-      .optional(),
+    marketplaceOptions: marketplaceOptionsSchema.required(),
+    pickupHours: pickupHoursSchema,
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
     discount: discountSchema.optional(),
+    dimensions: dimensionsSchema,
+    availabilityRadius: z
+      .number()
+      .min(0, 'Availability radius must be positive')
+      .max(100, 'Availability radius must not exceed 100 km')
+      .optional(),
     images: z.array(z.string()).optional(),
-    status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.DRAFT),
+    status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.PENDING),
 
    
-}) .refine(
+})
+.refine(
   (data) => {
-    if (data.marketplaceOptions?.pickup && !data.pickupHours?.trim()) {
+    // At least one marketplace option must be selected
+    if (!data.marketplaceOptions || (!data.marketplaceOptions.pickup && !data.marketplaceOptions.shipping && !data.marketplaceOptions.delivery)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'At least one marketplace option (Pickup, Shipping, or Delivery) must be selected',
+    path: ['marketplaceOptions'],
+  }
+)
+.refine(
+  (data) => {
+    if (data.marketplaceOptions?.pickup && !data.pickupHours) {
       return false;
     }
     return true;
@@ -259,36 +298,8 @@ export const updateProductSchema = z.object({
         'Please enter a valid HEX color code (e.g., #FF0000)'
       )
       .optional(),
-    locations: z
-      .array(
-        z.object({
-          address: z
-            .string()
-            .trim()
-            .min(5, 'Location must be at least 5 characters')
-            .max(200, 'Location must not exceed 200 characters'),
-          coordinates: z.object({
-            type: z.literal('Point').default('Point'),
-            coordinates: z
-              .tuple([z.number(), z.number()])
-              .refine(
-                ([lng, lat]) => lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90,
-                'Invalid coordinates. Must be [longitude, latitude]'
-              ),
-          }),
-          city: z.string().trim().max(100, 'City must not exceed 100 characters').optional(),
-          state: z.string().trim().max(100, 'State must not exceed 100 characters').optional(),
-          country: z.string().trim().max(100, 'Country must not exceed 100 characters').optional(),
-          postalCode: z.string().trim().max(20, 'Postal code must not exceed 20 characters').optional(),
-          isDefault: z.boolean().default(false).optional(),
-          availabilityRadius: z
-            .number()
-            .min(0, 'Availability radius must be positive')
-            .max(100, 'Availability radius must not exceed 100 km')
-            .default(10)
-            .optional(),
-        })
-      )
+    locationIds: z
+      .array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid address ID'))
       .min(1, 'At least one location is required')
       .max(10, 'Maximum 10 locations allowed')
       .optional(),
@@ -309,25 +320,41 @@ export const updateProductSchema = z.object({
       .optional(),
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
     marketplaceOptions: marketplaceOptionsSchema.optional(),
-    pickupHours: z
-      .string()
-      .trim()
-      .max(100, 'Pickup hours must not exceed 100 characters')
-      .optional(),
+    pickupHours: pickupHoursSchema,
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
     discount: discountSchema.optional(),
+    dimensions: dimensionsSchema,
+    availabilityRadius: z
+      .number()
+      .min(0, 'Availability radius must be positive')
+      .max(100, 'Availability radius must not exceed 100 km')
+      .optional(),
     images: z.array(z.string()).optional(),
     status: z.nativeEnum(ProductStatus).optional(),
 
-}).refine(
+})
+.refine(
   (data) => Object.keys(data).length > 0,
   'At least one field must be provided for update'
 )
+.refine(
+  (data) => {
+    // If marketplaceOptions is being updated, ensure at least one option is selected
+    if (data.marketplaceOptions && !data.marketplaceOptions.pickup && !data.marketplaceOptions.shipping && !data.marketplaceOptions.delivery) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'At least one marketplace option (Pickup, Shipping, or Delivery) must be selected',
+    path: ['marketplaceOptions'],
+  }
+)
 
 export const getProductBySlugSchema = z.object({
-    slug: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product ID'),
+    slug: z.string().min(1, 'Slug is required'),
 });
 
 export const deleteProductSchema = z.object({
@@ -347,12 +374,26 @@ export const getProductsSchema = z.object({
     featured: z.string().transform(val => val === 'true').optional(),
     search: z.string().optional(),
     sort: z.string().optional(),
-    page: z.string().transform(Number).pipe(z.number().min(1)).optional().default('1'),
-    limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).optional().default('20'),
+    page: z.string().optional().default('1').transform(Number).pipe(z.number().min(1)),
+    limit: z.string().optional().default('20').transform(Number).pipe(z.number().min(1).max(100)),
+    // Filter parameters from FilterDropdown
+    popularity: z.union([z.string(), z.array(z.string())]).optional(),
+    newest: z.union([z.string(), z.array(z.string())]).optional(),
+    availability: z.union([z.string(), z.array(z.string())]).optional(),
+    readyTime: z.union([z.string(), z.array(z.string())]).optional(),
+    // Also accept bracket notation (when sent from query string)
+    'popularity[]': z.union([z.string(), z.array(z.string())]).optional(),
+    'newest[]': z.union([z.string(), z.array(z.string())]).optional(),
+    'availability[]': z.union([z.string(), z.array(z.string())]).optional(),
+    'readyTime[]': z.union([z.string(), z.array(z.string())]).optional(),
+    sorting: z.enum(['ascending', 'descending']).optional(),
+    pricing: z.enum(['high-to-low', 'low-to-high', 'custom']).optional(),
+    priceRange: z.string().optional(), // Format: "min,max"
     // Location-based filtering
+    location: z.string().optional(),
     latitude: z.string().transform(Number).pipe(z.number().min(-90).max(90)).optional(),
     longitude: z.string().transform(Number).pipe(z.number().min(-180).max(180)).optional(),
-    maxDistance: z.string().transform(Number).pipe(z.number().min(0).max(100)).optional().default('10'),
+    maxDistance: z.string().optional().default('10').transform(Number).pipe(z.number().min(0).max(100)),
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),

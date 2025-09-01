@@ -9,10 +9,8 @@ import {
   ShippingAddressSchema,
   OrderProductSchema,
   PaymentDetailsSchema,
-  OrderSummarySchema,
-  CustomerReviewSchema,
-  DriverReviewSchema,
   OrderTrackingSchema,
+  InfoSchema,
 } from './order.schemas.js';
 import { orderMethods } from './order.methods.js';
 import { orderStatics } from './order.statics.js';
@@ -21,20 +19,15 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
   {
     orderNumber: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       index: true,
     },
     customer: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Customer is required'],
-      index: true,
+      type: InfoSchema,
     },
     driver: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      index: true,
+      type: InfoSchema,
     },
     products: {
       type: [OrderProductSchema],
@@ -46,19 +39,57 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
         message: 'Order must have at least one product',
       },
     },
-    shippingAddress: {
-      type: ShippingAddressSchema,
+    date: {
+      type: String,
       required: true,
     },
-    billingAddress: {
-      type: ShippingAddressSchema,
-    },
-    paymentDetails: {
-      type: PaymentDetailsSchema,
+    amount: {
+      type: Number,
       required: true,
+      min: 0,
     },
     orderSummary: {
-      type: OrderSummarySchema,
+      type: new Schema({
+        shippingAddress: {
+          type: ShippingAddressSchema,
+          required: true,
+        },
+        proofOfDelivery: {
+          type: String,
+        },
+        paymentMethod: {
+          type: PaymentDetailsSchema,
+          required: true,
+        },
+        subTotal: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        shippingFee: {
+          type: Number,
+          required: true,
+          min: 0,
+          default: 0,
+        },
+        marketplaceFee: {
+          type: Number,
+          required: true,
+          min: 0,
+          default: 0,
+        },
+        taxes: {
+          type: Number,
+          required: true,
+          min: 0,
+          default: 0,
+        },
+        total: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+      }, { _id: false }),
       required: true,
     },
     status: {
@@ -71,19 +102,11 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
       type: [OrderTrackingSchema],
       default: [],
     },
-    proofOfDelivery: {
-      type: String,
-    },
     deliveryInstructions: {
       type: String,
       maxlength: 500,
     },
-    customerReview: {
-      type: CustomerReviewSchema,
-    },
-    driverReview: {
-      type: DriverReviewSchema,
-    },
+   
     estimatedDeliveryDate: {
       type: Date,
     },
@@ -121,8 +144,9 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
 // Indexes for better query performance
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ 'products.seller': 1 });
-OrderSchema.index({ 'paymentDetails.status': 1 });
-OrderSchema.index({ orderNumber: 'text', 'products.name': 'text' });
+OrderSchema.index({ 'orderSummary.paymentMethod.status': 1 });
+OrderSchema.index({ id: 1 });
+OrderSchema.index({ orderNumber: 'text', 'products.title': 'text' });
 
 // Virtual properties
 OrderSchema.virtual('isDelivered').get(function() {
@@ -134,7 +158,7 @@ OrderSchema.virtual('isCancelled').get(function() {
 });
 
 OrderSchema.virtual('isPaid').get(function() {
-  return this.paymentDetails.status === PaymentStatus.COMPLETED;
+  return this.orderSummary?.paymentMethod?.status === PaymentStatus.COMPLETED;
 });
 
 OrderSchema.virtual('daysUntilDelivery').get(function() {
@@ -154,14 +178,16 @@ OrderSchema.pre('save', async function(next) {
       this.orderNumber = await Order.generateOrderNumber();
     }
     
-    this.trackingHistory.push({
-      status: OrderStatus.PENDING,
-      timestamp: new Date(),
-      description: 'Order placed',
-    });
+    if (this.trackingHistory) {
+      this.trackingHistory.push({
+        status: OrderStatus.PENDING,
+        timestamp: new Date(),
+        description: 'Order placed',
+      });
+    }
   }
   
-  if (this.isModified('status')) {
+  if (this.isModified('status') && this.trackingHistory) {
     this.trackingHistory.push({
       status: this.status,
       timestamp: new Date(),
@@ -173,26 +199,39 @@ OrderSchema.pre('save', async function(next) {
 });
 
 OrderSchema.pre('save', function(next) {
+  if (!this.id) {
+    this.id = Date.now().toString();
+  }
+  
+  if (!this.date) {
+    const now = new Date();
+    this.date = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  
   if (this.orderSummary) {
-    const subtotal = this.products.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    this.orderSummary.subtotal = subtotal;
+    const subTotal = this.products.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    this.orderSummary.subTotal = subTotal;
     this.orderSummary.total = 
-      subtotal + 
+      subTotal + 
       this.orderSummary.shippingFee + 
       this.orderSummary.marketplaceFee + 
-      this.orderSummary.taxes - 
-      (this.orderSummary.discount || 0);
+      this.orderSummary.taxes;
+    this.amount = this.orderSummary.total;
   }
   next();
 });
 
 // Post-save middleware for population
-OrderSchema.post('save', async function(doc) {
-  await doc.populate([
-    { path: 'customer', select: 'firstName lastName email phone' },
-    { path: 'driver', select: 'firstName lastName email phone' },
-    { path: 'products.product', select: 'title price images' },
-  ]);
+OrderSchema.post('save', async function() {
+  if (this.customer?.userRef) {
+    await this.populate('customer.userRef', 'displayName email phone avatar');
+  }
+  if (this.driver?.userRef) {
+    await this.populate('driver.userRef', 'displayName email phone avatar');
+  }
+  if (this.products?.length > 0) {
+    await this.populate('products.productRef', 'title price images');
+  }
 });
 
 // Instance methods

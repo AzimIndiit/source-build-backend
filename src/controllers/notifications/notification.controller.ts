@@ -17,9 +17,7 @@ import { NotificationModal } from '@models/notification/index.js';
 /**
  * List notifications for current user (paginated)
  */
-export const listNotifications = [
-  validate(notificationFilterSchema),
-  catchAsync(async (req: Request, res: Response) => {
+export const listNotifications = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     const query: NotificationFilterInput = req.query as any;
     
@@ -72,8 +70,7 @@ export const listNotifications = [
       },
       'Notifications retrieved successfully'
     );
-  })
-];
+  });
 
 /**
  * Get single notification by ID
@@ -105,7 +102,7 @@ export const getNotification = [
  * Mark a notification as read
  */
 export const markAsRead = [
-  validate(notificationIdSchema),
+  validate(notificationIdSchema.shape.params,"params"),
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const userId = req.user?.id;

@@ -19,7 +19,8 @@ const NOTIFICATION_TYPES: NotificationType[] = [
   'ORDER_DELIVERED',
   'PRODUCT_APPROVED',
   'PRODUCT_PRICE_UPDATE',
-  'PRODUCT_OUT_OF_STOCK'
+  'PRODUCT_OUT_OF_STOCK',
+  'WELCOME'
 ];
 
 const NOTIFICATION_STATUS: NotificationStatus[] = ['sent', 'failed', 'pending'];

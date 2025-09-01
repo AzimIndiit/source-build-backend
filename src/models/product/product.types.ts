@@ -17,6 +17,7 @@ export enum ProductStatus {
   INACTIVE = 'inactive',
   OUT_OF_STOCK = 'out_of_stock',
   DRAFT = 'draft',
+  PENDING = 'pending',
   ARCHIVED = 'archived',
 }
 
@@ -53,6 +54,23 @@ export interface IProductLocation {
   availabilityRadius?: number;
 }
 
+export interface IDimensions {
+  width?: string;
+  length?: string;
+  height?: string;
+  unit?: 'inches' | 'cm' | 'feet' | 'meters';
+}
+
+export interface IPickupHours {
+  monday?: { open: string; close: string };
+  tuesday?: { open: string; close: string };
+  wednesday?: { open: string; close: string };
+  thursday?: { open: string; close: string };
+  friday?: { open: string; close: string };
+  saturday?: { open: string; close: string };
+  sunday?: { open: string; close: string };
+}
+
 export interface IProductBase {
   title: string;
   slug: string;
@@ -63,11 +81,11 @@ export interface IProductBase {
   quantity: number;
   brand: string;
   color: string;
-  locations: IProductLocation[];
+  locationIds: Types.ObjectId[];  // Changed from locations to locationIds (references to SavedAddress)
   productTag: string[];
   variants?: IVariant[];
   marketplaceOptions?: IMarketplaceOptions;
-  pickupHours?: string;
+  pickupHours?: IPickupHours | string;  // Can be object or string
   shippingPrice?: number;
   readyByDate?: Date;
   readyByTime?: string;
@@ -75,6 +93,8 @@ export interface IProductBase {
   images: string[];
   status: ProductStatus;
   seller: Types.ObjectId;
+  dimensions?: IDimensions;  // New field for product dimensions
+  availabilityRadius?: number;  // New field for delivery radius
   views?: number;
   likes?: number;
   rating?: number;
@@ -124,11 +144,11 @@ export interface CreateProductDTO {
   quantity: number;
   brand: string;
   color: string;
-  locations: IProductLocation[];
+  locationIds: string[];  // Array of SavedAddress IDs
   productTag: string[];
   variants?: IVariant[];
   marketplaceOptions?: IMarketplaceOptions;
-  pickupHours?: string;
+  pickupHours?: IPickupHours | string;
   shippingPrice?: number;
   readyByDate?: Date;
   readyByTime?: string;
@@ -136,6 +156,8 @@ export interface CreateProductDTO {
   images?: string[];
   status?: ProductStatus;
   seller: Types.ObjectId;
+  dimensions?: IDimensions;
+  availabilityRadius?: number;
 }
 
 export interface UpdateProductDTO {
@@ -147,17 +169,19 @@ export interface UpdateProductDTO {
   quantity?: number;
   brand?: string;
   color?: string;
-  locationAddress?: string;
+  locationIds?: string[];  // Array of SavedAddress IDs
   productTag?: string[];
   variants?: IVariant[];
   marketplaceOptions?: IMarketplaceOptions;
-  pickupHours?: string;
+  pickupHours?: IPickupHours | string;
   shippingPrice?: number;
   readyByDate?: Date;
   readyByTime?: string;
   discount?: IDiscount;
   images?: string[];
   status?: ProductStatus;
+  dimensions?: IDimensions;
+  availabilityRadius?: number;
 }
 
 export interface ProductFilterDTO {

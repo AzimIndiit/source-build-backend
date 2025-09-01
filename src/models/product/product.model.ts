@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
-import slugify from 'slugify';
+import * as slugifyModule from 'slugify';
+const slugify = slugifyModule.default || slugifyModule;
 import { 
   IProduct, 
   IProductModel,
@@ -9,7 +10,9 @@ import {
 import { 
   discountSchema, 
   variantSchema, 
-  marketplaceOptionsSchema 
+  marketplaceOptionsSchema,
+  dimensionsSchema,
+  pickupHoursSchema
 } from '@models/product/product.schemas.js';
 import {
   calculateDiscountedPrice,
@@ -39,40 +42,34 @@ const productSchema = new Schema<IProduct, IProductModel>(
     },
     slug: {
       type: String,
-      required: [true, 'Product slug is required'],
       trim: true,
       unique: true,
+      // Not required initially as it's auto-generated from title
     },
     price: {
       type: Number,
-      required: [true, 'Product price is required'],
       min: [0, 'Price must be positive'],
       max: [999999.99, 'Price must not exceed 999,999.99'],
     },
     description: {
       type: String,
-      required: [true, 'Product description is required'],
       trim: true,
       minlength: [10, 'Description must be at least 10 characters'],
       maxlength: [2000, 'Description must not exceed 2000 characters'],
     },
     category: {
       type: String,
-      required: [true, 'Product category is required'],
       trim: true,
       index: true,
     },
     subCategory: {
       type: String,
-      required: [true, 'Product sub-category is required'],
       trim: true,
       index: true,
     },
     quantity: {
       type: Number,
-      required: [true, 'Product quantity is required'],
-      min: [0, 'Quantity cannot be negative'],
-      max: [99999, 'Quantity must not exceed 99,999'],
+ 
       validate: {
         validator: Number.isInteger,
         message: 'Quantity must be an integer',
@@ -80,79 +77,21 @@ const productSchema = new Schema<IProduct, IProductModel>(
     },
     brand: {
       type: String,
-      required: [true, 'Product brand is required'],
       trim: true,
-      minlength: [2, 'Brand must be at least 2 characters'],
-      maxlength: [50, 'Brand must not exceed 50 characters'],
       index: true,
     },
     color: {
       type: String,
-      required: [true, 'Product color is required'],
       trim: true,
       validate: {
-        validator: (value: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value),
+        validator: (value: string) => !value || /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value),
         message: 'Invalid HEX color code',
       },
     },
-    locations: [{
-      address: {
-        type: String,
-        required: [true, 'Location address is required'],
-        trim: true,
-        minlength: [5, 'Location must be at least 5 characters'],
-        maxlength: [200, 'Location must not exceed 200 characters'],
-      },
-      coordinates: {
-        type: {
-          type: String,
-          enum: ['Point'],
-          default: 'Point',
-          required: true,
-        },
-        coordinates: {
-          type: [Number],
-          required: [true, 'Coordinates are required'],
-          validate: {
-            validator: function(coords: number[]) {
-              return coords.length === 2 && 
-                     coords[0] >= -180 && coords[0] <= 180 && 
-                     coords[1] >= -90 && coords[1] <= 90;
-            },
-            message: 'Invalid coordinates. Must be [longitude, latitude]',
-          },
-        },
-      },
-      city: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'City must not exceed 100 characters'],
-      },
-      state: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'State must not exceed 100 characters'],
-      },
-      country: {
-        type: String,
-        trim: true,
-        maxlength: [100, 'Country must not exceed 100 characters'],
-      },
-      postalCode: {
-        type: String,
-        trim: true,
-        maxlength: [20, 'Postal code must not exceed 20 characters'],
-      },
-      isDefault: {
-        type: Boolean,
-        default: false,
-      },
-      availabilityRadius: {
-        type: Number,
-        default: 10,
-        min: [0, 'Availability radius must be positive'],
-        max: [100, 'Availability radius must not exceed 100 km'],
-      },
+    locationIds: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Address',
+      index: true,
     }],
     productTag: [{
       type: String,
@@ -176,9 +115,21 @@ const productSchema = new Schema<IProduct, IProductModel>(
       }),
     },
     pickupHours: {
-      type: String,
-      trim: true,
-      maxlength: [100, 'Pickup hours must not exceed 100 characters'],
+      type: Schema.Types.Mixed,  // Can be string or object
+      validate: {
+        validator: function(value: any) {
+          // Allow string or object
+          if (typeof value === 'string') {
+            return value.length <= 100;
+          }
+          if (typeof value === 'object' && value !== null) {
+            // Validate object structure if needed
+            return true;
+          }
+          return true;
+        },
+        message: 'Invalid pickup hours format',
+      },
     },
     shippingPrice: {
       type: Number,
@@ -195,6 +146,15 @@ const productSchema = new Schema<IProduct, IProductModel>(
       type: discountSchema,
       default: () => ({ discountType: DiscountType.NONE }),
     },
+    dimensions: {
+      type: dimensionsSchema,
+      default: undefined,
+    },
+    availabilityRadius: {
+      type: Number,
+      min: [0, 'Availability radius must be positive'],
+      max: [100, 'Availability radius must not exceed 100 km'],
+    },
     images: [{
       type: String,
       required: true,
@@ -203,7 +163,7 @@ const productSchema = new Schema<IProduct, IProductModel>(
     status: {
       type: String,
       enum: Object.values(ProductStatus),
-      default: ProductStatus.DRAFT,
+      default: ProductStatus.PENDING,
       index: true,
     },
     seller: {
@@ -261,7 +221,6 @@ const productSchema = new Schema<IProduct, IProductModel>(
 
 // Indexes for better query performance
 productSchema.index({ title: 'text', description: 'text', productTag: 'text' });
-productSchema.index({ 'locations.coordinates': '2dsphere' });
 productSchema.index({ price: 1, createdAt: -1 });
 productSchema.index({ seller: 1, status: 1 });
 productSchema.index({ category: 1, subCategory: 1, status: 1 });
@@ -295,7 +254,9 @@ Object.assign(productSchema.statics, {
 productSchema.pre('save', function(next) {
   // Generate slug from title if not provided or if title changed
   if (this.isModified('title') || !this.slug) {
-    this.slug = slugify(this.title, {
+    // Add timestamp to make slug unique
+    const timestamp = Date.now();
+    this.slug = slugify(`${this.title}-${timestamp}`, {
       lower: true,
       strict: true,
       remove: /[*+~.()'"!:@]/g,

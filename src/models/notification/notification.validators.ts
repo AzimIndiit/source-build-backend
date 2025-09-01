@@ -71,6 +71,20 @@ export const notificationFilterSchema = z.object({
 });
 
 /**
+ * Simple query validator for notifications list
+ */
+export const notificationQuerySchema = z.object({
+  type: NotificationTypeEnum.optional(),
+  isRead: z.string().transform(val => val === 'true').optional(),
+  status: NotificationStatusEnum.optional(),
+  userId: z.string().optional(),
+  page: z.string().transform(Number).optional().default('1'),
+  limit: z.string().transform(Number).optional().default('10'),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+/**
  * Bulk notification validator
  */
 export const bulkNotificationSchema = z.object({

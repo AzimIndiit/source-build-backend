@@ -7,7 +7,7 @@ export type NotificationType =
   | 'ORDER_DELIVERED'
   | 'PRODUCT_APPROVED'
   | 'PRODUCT_PRICE_UPDATE'
-  | 'PRODUCT_OUT_OF_STOCK';
+  | 'PRODUCT_OUT_OF_STOCK' | 'WELCOME';
 
 export type NotificationStatus = 'sent' | 'failed' | 'pending';
 

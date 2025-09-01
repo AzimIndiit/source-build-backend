@@ -1,35 +1,36 @@
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import authService, { IRegisterData, ILoginCredentials } from '@services/auth.service.js';
-import { IUser, UserRole } from '@/models/user/user.model.js';
-import { 
+import { Request, Response, NextFunction } from 'express'
+import { z } from 'zod'
+import authService, { IRegisterData, ILoginCredentials } from '@services/auth.service.js'
+import { IUser, UserRole } from '@/models/user/user.model.js'
+import {
   registerUserSchema,
   loginUserSchema,
   forgotPasswordSchema,
-  resetPasswordSchema
-} from '@/models/user/user.validators.js';
-import { validate } from '@middlewares/validation.middleware.js';
-import ApiError from '@utils/ApiError.js';
-import ApiResponse from '@utils/ApiResponse.js';
-import catchAsync from '@utils/catchAsync.js';
-import logger from '@config/logger.js';
-import config from '@config/index.js';
-import passport from 'passport';
-
+  resetPasswordSchema,
+} from '@/models/user/user.validators.js'
+import { validate } from '@middlewares/validation.middleware.js'
+import ApiError from '@utils/ApiError.js'
+import ApiResponse from '@utils/ApiResponse.js'
+import catchAsync from '@utils/catchAsync.js'
+import logger from '@config/logger.js'
+import config from '@config/index.js'
+import passport from 'passport'
+import { getMessage } from '@/utils/getMessage.js'
+import { createNotificationService } from '@/services/notification.service.js'
 
 /**
  * Set authentication cookies
  */
 const setAuthCookies = (res: Response, tokens: { accessToken: string; refreshToken: string }) => {
-  const isProduction = config.NODE_ENV === 'production';
-  
+  const isProduction = config.NODE_ENV === 'production'
+
   // Set access token cookie (shorter expiration)
   res.cookie('accessToken', tokens.accessToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'strict' : 'lax',
     maxAge: 15 * 60 * 1000, // 15 minutes
-  });
+  })
 
   // Set refresh token cookie (longer expiration)
   res.cookie('refreshToken', tokens.refreshToken, {
@@ -37,16 +38,16 @@ const setAuthCookies = (res: Response, tokens: { accessToken: string; refreshTok
     secure: isProduction,
     sameSite: isProduction ? 'strict' : 'lax',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-  });
-};
+  })
+}
 
 /**
  * Clear authentication cookies
  */
 const clearAuthCookies = (res: Response) => {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
-};
+  res.clearCookie('accessToken')
+  res.clearCookie('refreshToken')
+}
 
 /**
  * Register a new user with role-specific validation
@@ -54,93 +55,93 @@ const clearAuthCookies = (res: Response) => {
 export const register = [
   catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     // First, determine the role to use the appropriate validation
-    const { role } = req.body;
-    
+    const { role } = req.body
+
     // Enhanced validation with better error messages
     try {
-      const validated = await registerUserSchema.parseAsync(req.body);
-      req.body = validated;
+      const validated = await registerUserSchema.parseAsync(req.body)
+      req.body = validated
     } catch (error) {
       if (error instanceof z.ZodError) {
         // Enhanced error formatting with more specific messages
-        const formattedErrors = error.errors.map(err => {
-          let message = err.message;
-          let field = err.path.join('.');
-          
+        const formattedErrors = error.errors.map((err) => {
+          let message = err.message
+          let field = err.path.join('.')
+
           // Provide more helpful error messages for common cases
           if (err.code === 'invalid_union') {
             // Check what fields are missing based on the role
             if (role === 'buyer') {
               if (!req.body.firstName) {
-                message = 'First name is required for buyer registration';
-                field = 'firstName';
+                message = 'First name is required for buyer registration'
+                field = 'firstName'
               } else if (!req.body.lastName) {
-                message = 'Last name is required for buyer registration';
-                field = 'lastName';
+                message = 'Last name is required for buyer registration'
+                field = 'lastName'
               } else if (!req.body.confirmPassword) {
-                message = 'Confirm password is required';
-                field = 'confirmPassword';
+                message = 'Confirm password is required'
+                field = 'confirmPassword'
               } else if (req.body.termsAccepted !== true) {
-                message = 'You must accept the terms and conditions';
-                field = 'termsAccepted';
+                message = 'You must accept the terms and conditions'
+                field = 'termsAccepted'
               }
             } else if (role === 'seller') {
               if (!req.body.firstName) {
-                message = 'First name is required for seller registration';
-                field = 'firstName';
+                message = 'First name is required for seller registration'
+                field = 'firstName'
               } else if (!req.body.lastName) {
-                message = 'Last name is required for seller registration';
-                field = 'lastName';
+                message = 'Last name is required for seller registration'
+                field = 'lastName'
               } else if (!req.body.businessName) {
-                message = 'Business name is required for seller registration';
-                field = 'businessName';
+                message = 'Business name is required for seller registration'
+                field = 'businessName'
               } else if (!req.body.einNumber) {
-                message = 'EIN number is required for seller registration';
-                field = 'einNumber';
+                message = 'EIN number is required for seller registration'
+                field = 'einNumber'
               } else if (!req.body.salesTaxId) {
-                message = 'Sales Tax ID is required for seller registration';
-                field = 'salesTaxId';
+                message = 'Sales Tax ID is required for seller registration'
+                field = 'salesTaxId'
               } else if (!req.body.phone) {
-                message = 'Phone number is required for seller registration';
-                field = 'phone';
+                message = 'Phone number is required for seller registration'
+                field = 'phone'
               }
             } else if (role === 'driver') {
               if (!req.body.firstName) {
-                message = 'First name is required for driver registration';
-                field = 'firstName';
+                message = 'First name is required for driver registration'
+                field = 'firstName'
               } else if (!req.body.lastName) {
-                message = 'Last name is required for driver registration';
-                field = 'lastName';
+                message = 'Last name is required for driver registration'
+                field = 'lastName'
               } else if (!req.body.phone) {
-                message = 'Phone number is required for driver registration';
-                field = 'phone';
+                message = 'Phone number is required for driver registration'
+                field = 'phone'
               } else if (!req.body.driverLicenseNumber) {
-                message = 'Driver license number is required for driver registration';
-                field = 'driverLicenseNumber';
+                message = 'Driver license number is required for driver registration'
+                field = 'driverLicenseNumber'
               }
             }
           }
-          
+
           return {
             field: field || err.path.join('.'),
             message: message,
             code: err.code,
-          };
-        });
-        
-        return next(ApiError.validationError('Validation failed', formattedErrors));
+          }
+        })
+
+        return next(ApiError.validationError('Validation failed', formattedErrors))
       }
-      return next(error);
+      return next(error)
     }
-    
-    logger.info('User registration attempt', { 
+
+    logger.info('User registration attempt', {
       email: req.body.email,
-      role: role, 
-      ip: req.ip 
-    });
+      role: role,
+      ip: req.ip,
+    })
 
     // Build registration data based on role
-    let registerData: IRegisterData;
+    let registerData: IRegisterData
 
     switch (role) {
       case UserRole.BUYER:
@@ -153,8 +154,8 @@ export const register = [
             addresses: [],
           } as any,
           termsAccepted: true,
-        };
-        break;
+        }
+        break
 
       case UserRole.SELLER:
         registerData = {
@@ -173,11 +174,10 @@ export const register = [
             phone: req.body.phone,
             cellPhone: req.body.cellPhone,
             addresses: [],
-         
           } as any,
           termsAccepted: true,
-        };
-        break;
+        }
+        break
 
       case UserRole.DRIVER:
         registerData = {
@@ -194,44 +194,54 @@ export const register = [
               verified: false,
               licenceImages: req.body.licenceImages,
             },
-            vehicles: [{
-              type: req.body.vehicleType,
-              make: req.body.vehicleMake,
-              model: req.body.vehicleModel,
-              vehicleImages: req.body.vehicleImages,
-              insuranceImages: req.body.insuranceImages,
-              registrationNumber: req.body.vehicleRegistrationNumber,
-            }],
+            vehicles: [
+              {
+                type: req.body.vehicleType,
+                make: req.body.vehicleMake,
+                model: req.body.vehicleModel,
+                vehicleImages: req.body.vehicleImages,
+                insuranceImages: req.body.insuranceImages,
+                registrationNumber: req.body.vehicleRegistrationNumber,
+              },
+            ],
           } as any,
           termsAccepted: true,
-        };
-        break;
+        }
+        break
 
       case UserRole.ADMIN:
         // Admin creation should be handled separately with higher security
-        return next(ApiError.forbidden('Admin registration is not allowed through this endpoint'));
+        return next(ApiError.forbidden('Admin registration is not allowed through this endpoint'))
 
       default:
-        return next(ApiError.badRequest('Invalid account type'));
+        return next(ApiError.badRequest('Invalid account type'))
     }
-console.log('registerData', registerData)
-registerData={...registerData,firstName:req.body.firstName,lastName:req.body.lastName}
+    console.log('registerData', registerData)
+    registerData = { ...registerData, firstName: req.body.firstName, lastName: req.body.lastName }
     // Register the user
-    const { user, tokens, otpSent } = await authService.register(registerData);
+    const { user, tokens, otpSent } = await authService.register(registerData)
 
-    logger.info('User registered successfully', { 
-      userId: user._id, 
-      email: user.email,
-      role: user.role 
-    });
 
-    return ApiResponse.created(res, {
-      user,
-      tokens,
-      otpSent
-    }, 'Registration successful. Please verify your email.');
-  })
-];
+
+    // // Notify admins about new user
+    // await notifyAdminsNewUser(user);
+    // logger.info('User registered successfully', {
+    //   userId: user._id,
+    //   email: user.email,
+    //   role: user.role
+    // });
+
+    return ApiResponse.created(
+      res,
+      {
+        user,
+        tokens,
+        otpSent,
+      },
+      'Registration successful. Please verify your email.'
+    )
+  }),
+]
 
 /**
  * Login user
@@ -239,106 +249,109 @@ registerData={...registerData,firstName:req.body.firstName,lastName:req.body.las
 export const login = [
   validate(loginUserSchema),
   catchAsync(async (req: Request, res: Response) => {
-    logger.info('User login attempt', { 
+    logger.info('User login attempt', {
       email: req.body.email,
-      ip: req.ip 
-    });
+      ip: req.ip,
+    })
 
     const credentials: ILoginCredentials = {
       email: req.body.email,
       password: req.body.password,
       rememberMe: req.body.rememberMe || false,
-    };
+    }
 
-    const { user, tokens } = await authService.login(credentials);
+    const { user, tokens } = await authService.login(credentials)
 
     // Set authentication cookies with extended expiry if rememberMe is true
-    const isProduction = config.NODE_ENV === 'production';
-    const rememberMe = req.body.rememberMe || false;
-    
+    const isProduction = config.NODE_ENV === 'production'
+    const rememberMe = req.body.rememberMe || false
+
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
       maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 15 * 60 * 1000, // 7 days or 15 minutes
-    });
+    })
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
       maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000, // 30 days or 1 day
-    });
+    })
 
-    logger.info('User logged in successfully', { userId: user._id, email: user.email });
+    logger.info('User logged in successfully', { userId: user._id, email: user.email })
 
-    return ApiResponse.success(res, {
-      user,
-      tokens,
-    }, 'Login successful');
-  })
-];
-
+    return ApiResponse.success(
+      res,
+      {
+        user,
+        tokens,
+      },
+      'Login successful'
+    )
+  }),
+]
 
 /**
  * Refresh access token
  */
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const refreshToken = req.body.refreshToken || req.cookies.refreshToken;
+  const refreshToken = req.body.refreshToken || req.cookies.refreshToken
 
   if (!refreshToken) {
-    throw ApiError.unauthorized('Refresh token is required');
+    throw ApiError.unauthorized('Refresh token is required')
   }
 
-  const tokens = await authService.refreshToken(refreshToken);
+  const tokens = await authService.refreshToken(refreshToken)
 
   // Update cookies with new tokens
-  setAuthCookies(res, tokens);
+  setAuthCookies(res, tokens)
 
-  logger.info('Token refreshed successfully');
+  logger.info('Token refreshed successfully')
 
-  return ApiResponse.success(res, { tokens }, 'Token refreshed successfully');
-});
+  return ApiResponse.success(res, { tokens }, 'Token refreshed successfully')
+})
 
 /**
  * Logout user
  */
 export const logout = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId!;
+  const userId = req.userId!
   // Safely access refresh token from body or cookies
-  const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken || null;
+  const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken || null
 
   // Call logout service - it should handle null refresh token gracefully
   if (refreshToken) {
-    await authService.logout(userId, refreshToken);
+    await authService.logout(userId, refreshToken)
   } else {
     // Just log out without invalidating specific token
-    await authService.logoutFromAllDevices(userId);
+    await authService.logoutFromAllDevices(userId)
   }
 
   // Clear authentication cookies
-  clearAuthCookies(res);
+  clearAuthCookies(res)
 
-  logger.info('User logged out successfully', { userId });
+  logger.info('User logged out successfully', { userId })
 
-  return ApiResponse.success(res, null, 'Logout successful');
-});
+  return ApiResponse.success(res, null, 'Logout successful')
+})
 
 /**
  * Logout from all devices
  */
 export const logoutFromAllDevices = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId!;
+  const userId = req.userId!
 
-  await authService.logoutFromAllDevices(userId);
+  await authService.logoutFromAllDevices(userId)
 
   // Clear authentication cookies
-  clearAuthCookies(res);
+  clearAuthCookies(res)
 
-  logger.info('User logged out from all devices', { userId });
+  logger.info('User logged out from all devices', { userId })
 
-  return ApiResponse.success(res, null, 'Logged out from all devices successfully');
-});
+  return ApiResponse.success(res, null, 'Logged out from all devices successfully')
+})
 
 /**
  * Request password reset
@@ -346,44 +359,42 @@ export const logoutFromAllDevices = catchAsync(async (req: Request, res: Respons
 export const requestPasswordReset = [
   validate(forgotPasswordSchema),
   catchAsync(async (req: Request, res: Response) => {
-    const { email } = req.body;
+    const { email } = req.body
 
-    const resetToken = await authService.generatePasswordResetToken(email);
+    const resetToken = await authService.generatePasswordResetToken(email)
 
     // In a real application, you would send this token via email
     // For development/testing, we'll return it in the response
-    const responseData = config.NODE_ENV === 'development' 
-      ? { resetToken } 
-      : null;
+    const responseData = config.NODE_ENV === 'development' ? { resetToken } : null
 
-    logger.info('Password reset requested', { email });
+    logger.info('Password reset requested', { email })
 
     return ApiResponse.success(
-      res, 
-      responseData, 
+      res,
+      responseData,
       'If an account with that email exists, a password reset link has been sent'
-    );
-  })
-];
+    )
+  }),
+]
 
 /**
  * Verify reset token
  */
 export const verifyResetToken = catchAsync(async (req: Request, res: Response) => {
-  const { token } = req.body;
+  const { token } = req.body
 
   if (!token || typeof token !== 'string') {
-    return ApiResponse.badRequest(res, 'Token is required');
+    return ApiResponse.badRequest(res, 'Token is required')
   }
 
-  const result = await authService.verifyResetToken(token);
+  const result = await authService.verifyResetToken(token)
 
   if (result.valid) {
-    return ApiResponse.success(res, { valid: true }, result.message || 'Token is valid');
+    return ApiResponse.success(res, { valid: true }, result.message || 'Token is valid')
   } else {
-    return ApiResponse.badRequest(res, result.message || 'Invalid or expired token');
+    return ApiResponse.badRequest(res, result.message || 'Invalid or expired token')
   }
-});
+})
 
 /**
  * Reset password
@@ -391,49 +402,52 @@ export const verifyResetToken = catchAsync(async (req: Request, res: Response) =
 export const resetPassword = [
   validate(resetPasswordSchema),
   catchAsync(async (req: Request, res: Response) => {
-    const { token, password } = req.body;
+    const { token, password } = req.body
 
-    await authService.resetPassword(token, password);
+    await authService.resetPassword(token, password)
 
-    logger.info('Password reset successfully');
+    logger.info('Password reset successfully')
 
-    return ApiResponse.success(res, null, 'Password reset successfully. Please login with your new password.');
-  })
-];
-
-
+    return ApiResponse.success(
+      res,
+      null,
+      'Password reset successfully. Please login with your new password.'
+    )
+  }),
+]
 
 /**
  * Google OAuth login with role selection
  */
 export const googleLogin = (req: Request, res: Response, next: NextFunction) => {
-  const role = req.query['role'] as UserRole;
-  
+  const role = req.query['role'] as UserRole
+
   // Validate role
   if (!role || !Object.values(UserRole).includes(role)) {
-    return ApiResponse.badRequest(res, 'Valid role parameter is required (buyer, seller, or driver)');
+    return ApiResponse.badRequest(
+      res,
+      'Valid role parameter is required (buyer, seller, or driver)'
+    )
   }
-  
+
   if (role === UserRole.ADMIN) {
-    return ApiResponse.forbidden(res, 'Admin registration via Google is not allowed');
+    return ApiResponse.forbidden(res, 'Admin registration via Google is not allowed')
   }
-  
-  logger.info('Google OAuth login attempt', { 
+
+  logger.info('Google OAuth login attempt', {
     ip: req.ip,
-    role 
-  });
-  
+    role,
+  })
+
   // Store role in session for use in callback
-  (req.session as any).role = role;
-  
+  ;(req.session as any).role = role
+
   // Initiate Google OAuth flow
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     state: role, // Pass role as state parameter
-  })(req, res, next);
-};
-
-
+  })(req, res, next)
+}
 
 /**
  * Google OAuth callback
@@ -442,79 +456,79 @@ export const googleCallback = [
   passport.authenticate('google', { failureRedirect: '/api/v1/auth/google/failure' }),
   catchAsync(async (req: Request, res: Response) => {
     if (!req.user) {
-      return ApiResponse.unauthorized(res, 'Google authentication failed');
+      return ApiResponse.unauthorized(res, 'Google authentication failed')
     }
 
-    const user = req.user as IUser;
-    const role = user.role;
-    
-    logger.info('Google OAuth callback success', { 
+    const user = req.user as IUser
+    const role = user.role
+
+    logger.info('Google OAuth callback success', {
       userId: user._id,
       role,
-      status: user.status
-    });
+      status: user.status,
+    })
 
     // Check if additional information is needed
-    const needsAdditionalInfo = 
-      (role === UserRole.SELLER && (!(user.profile as any)?.businessName || !(user.profile as any)?.einNumber)) ||
-      (role === UserRole.DRIVER && !(user.profile as any)?.driverLicense?.number);
+    const needsAdditionalInfo =
+      (role === UserRole.SELLER &&
+        (!(user.profile as any)?.businessName || !(user.profile as any)?.einNumber)) ||
+      (role === UserRole.DRIVER && !(user.profile as any)?.driverLicense?.number)
 
     // Generate tokens
     const tokens = {
       accessToken: user.generateAccessToken(),
       refreshToken: user.generateRefreshToken(),
       expiresIn: 900,
-    };
+    }
 
     // Add refresh token to user
-    await user.addRefreshToken(tokens.refreshToken);
+    await user.addRefreshToken(tokens.refreshToken)
 
     // Set authentication cookies
-    setAuthCookies(res, tokens);
+    setAuthCookies(res, tokens)
 
     // Redirect to frontend with appropriate route
-    const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000');
-    
+    const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000')
+
     if (needsAdditionalInfo) {
       // Redirect to complete profile page
-      redirectUrl.pathname = '/auth/complete-profile';
-      redirectUrl.searchParams.append('role', role);
+      redirectUrl.pathname = '/auth/complete-profile'
+      redirectUrl.searchParams.append('role', role)
     } else {
       // Normal callback
-      redirectUrl.pathname = '/auth/callback';
+      redirectUrl.pathname = '/auth/callback'
     }
-    
-    redirectUrl.searchParams.append('accessToken', tokens.accessToken);
-    redirectUrl.searchParams.append('refreshToken', tokens.refreshToken);
-    redirectUrl.searchParams.append('needsAdditionalInfo', needsAdditionalInfo.toString());
-    
-    res.redirect(redirectUrl.toString());
-  })
-];
+
+    redirectUrl.searchParams.append('accessToken', tokens.accessToken)
+    redirectUrl.searchParams.append('refreshToken', tokens.refreshToken)
+    redirectUrl.searchParams.append('needsAdditionalInfo', needsAdditionalInfo.toString())
+
+    res.redirect(redirectUrl.toString())
+  }),
+]
 
 /**
  * Google OAuth failure handler
  */
 export const googleFailure = catchAsync(async (req: Request, res: Response) => {
-  logger.error('Google OAuth authentication failed');
-  
-  const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000');
-  redirectUrl.pathname = '/auth/error';
-  redirectUrl.searchParams.append('error', 'google_auth_failed');
-  redirectUrl.searchParams.append('message', 'Failed to authenticate with Google');
-  
-  res.redirect(redirectUrl.toString());
-});
+  logger.error('Google OAuth authentication failed')
 
+  const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000')
+  redirectUrl.pathname = '/auth/error'
+  redirectUrl.searchParams.append('error', 'google_auth_failed')
+  redirectUrl.searchParams.append('message', 'Failed to authenticate with Google')
+
+  res.redirect(redirectUrl.toString())
+})
 
 /**
  * Get current user profile
  */
 export const getCurrentUser = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as IUser;
-  
+  const user = req.user as IUser
+
   if (!user) {
-    throw ApiError.unauthorized('User not authenticated');
+    throw ApiError.unauthorized('User not authenticated')
   }
 
   // Remove sensitive fields
@@ -540,57 +554,63 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response) => 
     address: (user.profile as any)?.address,
     description: (user.profile as any)?.description,
     avatar: (user.profile as any)?.avatar,
+  }
 
-
-  };
-
-  return ApiResponse.success(res, {
-    user: userResponse
-  }, 'User profile fetched successfully');
-});
+  return ApiResponse.success(
+    res,
+    {
+      user: userResponse,
+    },
+    'User profile fetched successfully'
+  )
+})
 
 /**
  * Health check endpoint
  */
 export const healthCheck = catchAsync(async (req: Request, res: Response) => {
-  return ApiResponse.success(res, {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'auth-service',
-  }, 'Service is healthy');
-});
+  return ApiResponse.success(
+    res,
+    {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'auth-service',
+    },
+    'Service is healthy'
+  )
+})
 
 /**
  * Change password for authenticated user
  */
 export const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId!;
-  const { oldPassword, newPassword } = req.body;
+  const userId = req.userId!
+  const { oldPassword, newPassword } = req.body
 
   // Validate input
   if (!oldPassword || !newPassword) {
-    throw ApiError.badRequest('Old password and new password are required');
+    throw ApiError.badRequest('Old password and new password are required')
   }
 
   // Password strength validation
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/
   if (!passwordRegex.test(newPassword)) {
     throw ApiError.badRequest(
       'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character'
-    );
+    )
   }
 
   // Check if old and new passwords are the same
   if (oldPassword === newPassword) {
-    throw ApiError.badRequest('New password must be different from current password');
+    throw ApiError.badRequest('New password must be different from current password')
   }
 
-  await authService.changePassword(userId, oldPassword, newPassword);
+  await authService.changePassword(userId, oldPassword, newPassword)
 
-  logger.info('Password changed successfully', { userId });
+  logger.info('Password changed successfully', { userId })
 
-  return ApiResponse.success(res, null, 'Password changed successfully');
-});
+  return ApiResponse.success(res, null, 'Password changed successfully')
+})
 
 export default {
   register,
@@ -607,4 +627,4 @@ export default {
   getCurrentUser,
   healthCheck,
   changePassword,
-};
+}

@@ -1,12 +1,12 @@
 import { Document, Types, Model } from 'mongoose';
 
 export enum OrderStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  OUT_FOR_DELIVERY = 'out_for_delivery',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled',
-  REFUNDED = 'refunded',
+  PENDING = 'Pending',
+  PROCESSING = 'Processing',
+  OUT_FOR_DELIVERY = 'Out for Delivery',
+  DELIVERED = 'Delivered',
+  CANCELLED = 'Cancelled',
+  REFUNDED = 'Refunded',
 }
 
 export enum PaymentStatus {
@@ -37,32 +37,49 @@ export interface IShippingAddress {
 }
 
 export interface IOrderProduct {
-  product: Types.ObjectId;
-  name: string;
+  id: string;
+  title: string;
   price: number;
   quantity: number;
   image?: string;
-  deliveryDate?: Date;
+  deliveryDate?: string;
+  productRef?: Types.ObjectId;
   seller?: Types.ObjectId;
 }
 
 export interface IPaymentDetails {
-  method: PaymentMethod;
-  status: PaymentStatus;
-  transactionId?: string;
+  type: string;
   cardType?: string;
   cardNumber?: string;
+  method?: PaymentMethod;
+  status?: PaymentStatus;
+  transactionId?: string;
   paidAt?: Date;
 }
 
 export interface IOrderSummary {
-  subtotal: number;
+  subTotal: number;
   shippingFee: number;
   marketplaceFee: number;
   taxes: number;
   discount?: number;
   total: number;
 }
+
+export interface IReviewInfo {
+  rating: number;
+  review: string;
+  reviewedAt?: Date;
+}
+
+export interface IUserInfo {
+  userRef: Types.ObjectId;
+  reviewRef?: IReviewInfo;
+}
+
+export interface ICustomerInfo extends IUserInfo {}
+
+export interface IDriverInfo extends IUserInfo {}
 
 export interface ICustomerReview {
   rating: number;
@@ -85,20 +102,21 @@ export interface IOrderTracking {
 }
 
 export interface IOrder extends Document, IOrderMethods {
-  orderNumber: string;
-  customer: Types.ObjectId;
-  driver?: Types.ObjectId;
+  orderNumber?: string;
+  customer: ICustomerInfo;
+  driver?: IDriverInfo;
   products: IOrderProduct[];
-  shippingAddress: IShippingAddress;
-  billingAddress?: IShippingAddress;
-  paymentDetails: IPaymentDetails;
-  orderSummary: IOrderSummary;
+  date: string;
+  amount: number;
   status: OrderStatus;
-  trackingHistory: IOrderTracking[];
-  proofOfDelivery?: string;
+  orderSummary: IOrderSummary & {
+    shippingAddress: IShippingAddress;
+    proofOfDelivery?: string;
+    paymentMethod: IPaymentDetails;
+    subTotal: number;
+  };
+  trackingHistory?: IOrderTracking[];
   deliveryInstructions?: string;
-  customerReview?: ICustomerReview;
-  driverReview?: IDriverReview;
   estimatedDeliveryDate?: Date;
   actualDeliveryDate?: Date;
   cancelReason?: string;

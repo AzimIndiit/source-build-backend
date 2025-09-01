@@ -18,7 +18,22 @@ export const validate = (
       const validated = await schema.parseAsync(req[source]);
       
       // Replace the original data with validated/transformed data
-      req[source] = validated;
+      // For query and params, we need to handle them differently since they're getter properties
+      if (source === 'query') {
+        // Store validated query data in a new property or directly use it
+        (req as any).validatedQuery = validated;
+        // Also update req.query by creating a new object
+        Object.keys(validated).forEach(key => {
+          (req.query as any)[key] = validated[key];
+        });
+      } else if (source === 'params') {
+        (req as any).validatedParams = validated;
+        Object.keys(validated).forEach(key => {
+          req.params[key] = validated[key];
+        });
+      } else {
+        req[source] = validated;
+      }
       
       next();
     } catch (error) {

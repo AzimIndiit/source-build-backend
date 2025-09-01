@@ -5,11 +5,18 @@ const router = Router();
 
 router.get(
   '/',
+  authenticate,
   productController.getProducts
 );
 
 router.get(
+  '/id/:id',
+  productController.getProductById
+);
+
+router.get(
   '/:slug',
+  authenticate,
   productController.getProductBySlug
 );
 
@@ -17,6 +24,12 @@ router.post(
   '/',
   authenticate,
   productController.createProduct
+);
+
+router.post(
+  '/draft',
+  authenticate,
+  productController.createProductDraft
 );
 
 router.patch(

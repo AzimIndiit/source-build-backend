@@ -3,9 +3,11 @@ import {
   IDiscount, 
   IVariant, 
   IMarketplaceOptions,
+  IDimensions,
+  IPickupHours,
   DiscountType,
   ProductStatus 
-} from './product.types';
+} from './product.types.js';
 
 export const discountSchema = new Schema<IDiscount>(
   {
@@ -87,6 +89,63 @@ export const marketplaceOptionsSchema = new Schema<IMarketplaceOptions>(
     delivery: {
       type: Boolean,
       default: false,
+    },
+  },
+  { _id: false }
+);
+
+export const dimensionsSchema = new Schema<IDimensions>(
+  {
+    width: {
+      type: String,
+      trim: true,
+    },
+    length: {
+      type: String,
+      trim: true,
+    },
+    height: {
+      type: String,
+      trim: true,
+    },
+    unit: {
+      type: String,
+      enum: ['inches', 'cm', 'feet', 'meters'],
+      default: 'inches',
+    },
+  },
+  { _id: false }
+);
+
+export const pickupHoursSchema = new Schema<IPickupHours>(
+  {
+    monday: {
+      open: String,
+      close: String,
+    },
+    tuesday: {
+      open: String,
+      close: String,
+    },
+    wednesday: {
+      open: String,
+      close: String,
+    },
+    thursday: {
+      open: String,
+      close: String,
+    },
+    friday: {
+      open: String,
+      close: String,
+    },
+    saturday: {
+      open: String,
+      close: String,
+    },
+    sunday: {
+      open: String,
+      close: String,
     },
   },
   { _id: false }

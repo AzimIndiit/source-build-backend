@@ -29,6 +29,7 @@
     "docs:serve": "ts-node scripts/serveSwagger.ts",
     "postman:export": "tsx scripts/exportPostman.ts",
     "db:seed": "ts-node scripts/seed.ts",
+    "db:seed:orders": "tsx src/seeds/seed-orders.ts",
     "db:reset": "ts-node scripts/resetDb.ts",
     "migration:create": "ts-node scripts/createMigration.ts",
     "migration:run": "ts-node scripts/runMigration.ts",
