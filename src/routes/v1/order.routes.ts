@@ -25,7 +25,7 @@ const router = Router();
  * @desc    Create a new order
  * @access  Private (Buyer)
  */
-router.post('/', authenticate, authorize([UserRole.BUYER]), createOrder);
+router.post('/', authenticate, authorize(UserRole.BUYER), createOrder);
 
 /**
  * @route   GET /api/v1/orders
@@ -39,7 +39,7 @@ router.get('/', authenticate, getOrders);
  * @desc    Get order statistics
  * @access  Private (Admin, Seller)
  */
-router.get('/stats', authenticate, authorize([UserRole.ADMIN, UserRole.SELLER]), getOrderStats);
+router.get('/stats', authenticate, authorize(UserRole.ADMIN, UserRole.SELLER), getOrderStats);
 
 /**
  * @route   GET /api/v1/orders/number/:orderNumber
@@ -67,7 +67,7 @@ router.get('/:id/tracking', authenticate, getOrderTracking);
  * @desc    Update order details
  * @access  Private (Admin, Seller)
  */
-router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.SELLER]), updateOrder);
+router.put('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.SELLER), updateOrder);
 
 /**
  * @route   PATCH /api/v1/orders/:id/status
@@ -77,7 +77,7 @@ router.put('/:id', authenticate, authorize([UserRole.ADMIN, UserRole.SELLER]), u
 router.patch(
   '/:id/status',
   authenticate,
-  authorize([UserRole.ADMIN, UserRole.SELLER, UserRole.DRIVER]),
+  authorize(UserRole.ADMIN, UserRole.SELLER, UserRole.DRIVER),
   updateOrderStatus
 );
 
@@ -89,7 +89,7 @@ router.patch(
 router.patch(
   '/:id/assign-driver',
   authenticate,
-  authorize([UserRole.ADMIN, UserRole.SELLER]),
+  authorize(UserRole.ADMIN, UserRole.SELLER),
   assignDriver
 );
 
@@ -98,35 +98,35 @@ router.patch(
  * @desc    Mark order as delivered
  * @access  Private (Driver)
  */
-router.patch('/:id/deliver', authenticate, authorize([UserRole.DRIVER]), markAsDelivered);
+router.patch('/:id/deliver', authenticate, authorize(UserRole.DRIVER), markAsDelivered);
 
 /**
  * @route   PATCH /api/v1/orders/:id/cancel
  * @desc    Cancel order
  * @access  Private (Buyer, Admin)
  */
-router.patch('/:id/cancel', authenticate, authorize([UserRole.BUYER, UserRole.ADMIN]), cancelOrder);
+router.patch('/:id/cancel', authenticate, authorize(UserRole.BUYER, UserRole.ADMIN), cancelOrder);
 
 /**
  * @route   POST /api/v1/orders/:id/refund
  * @desc    Initiate refund for order
  * @access  Private (Admin)
  */
-router.post('/:id/refund', authenticate, authorize([UserRole.ADMIN]), initiateRefund);
+router.post('/:id/refund', authenticate, authorize(UserRole.ADMIN), initiateRefund);
 
 /**
  * @route   POST /api/v1/orders/:id/review/customer
  * @desc    Add customer review for order
  * @access  Private (Buyer)
  */
-router.post('/:id/review/customer', authenticate, authorize([UserRole.BUYER]), addCustomerReview);
+router.post('/:id/review/customer', authenticate, authorize(UserRole.BUYER), addCustomerReview);
 
 /**
  * @route   POST /api/v1/orders/:id/review/driver
  * @desc    Add driver review for order
  * @access  Private (Buyer)
  */
-router.post('/:id/review/driver', authenticate, authorize([UserRole.BUYER]), addDriverReview);
+router.post('/:id/review/driver', authenticate, authorize(UserRole.BUYER), addDriverReview);
 
 // Seller-specific routes
 /**
@@ -137,7 +137,7 @@ router.post('/:id/review/driver', authenticate, authorize([UserRole.BUYER]), add
 router.get(
   '/seller/orders',
   authenticate,
-  authorize([UserRole.SELLER]),
+  authorize(UserRole.SELLER),
   getOrders
 );
 
@@ -150,7 +150,7 @@ router.get(
 router.get(
   '/driver/deliveries',
   authenticate,
-  authorize([UserRole.DRIVER]),
+  authorize(UserRole.DRIVER),
   getOrders
 );
 
@@ -163,7 +163,7 @@ router.get(
 router.get(
   '/my-orders',
   authenticate,
-  authorize([UserRole.BUYER]),
+  authorize(UserRole.BUYER),
   getOrders
 );
 

@@ -16,14 +16,14 @@ export interface IMessageBase {
   chat: Types.ObjectId;
   sender: Types.ObjectId;
   content?: string;
-  message_type: MessageType;
+  messageType: MessageType;
   attachments?: Types.ObjectId[];
   status: MessageStatus;
-  sent_at?: Date;
-  delivered_at?: Date;
-  read_at?: Date;
-  created_at?: Date;
-  updated_at?: Date;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  readAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IMessage extends IMessageBase, Document {
@@ -47,14 +47,14 @@ export interface IMessageModel extends Model<IMessage, {}, IMessageMethods>, IMe
 export interface CreateMessageDTO {
   chat: Types.ObjectId;
   content: string;
-  message_type?: MessageType;
+  messageType?: MessageType;
   attachments?: Types.ObjectId[];
 }
 
 export interface UpdateMessageDTO {
   status?: MessageStatus;
-  delivered_at?: Date;
-  read_at?: Date;
+  deliveredAt?: Date;
+  readAt?: Date;
 }
 
 export interface GetMessagesDTO {

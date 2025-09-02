@@ -14,20 +14,18 @@ export const createChatSchema = z.object({
 });
 
 export const getChatSchema = z.object({
-  query: z.object({
-    chatId: objectIdSchema,
-  }),
+  chatId: objectIdSchema,
 });
 
 export const deleteChatSchema = z.object({
-  params: z.object({
     id: objectIdSchema,
-  }),
 });
 
 export const getUserChatsSchema = z.object({
-  query: z.object({
-    page: z.string().optional(),
-    limit: z.string().optional(),
-  }),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
+
+export const getOrCreateChatSchema = z.object({
+  participantId: objectIdSchema,
 });

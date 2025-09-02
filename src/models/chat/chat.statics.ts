@@ -17,11 +17,8 @@ export async function findUserChats(
   return this.find({ participants: userId })
     .populate({
       path: 'participants',
-      select: 'displayName email isOnline profilePicture',
-      populate: {
-        path: 'profilePicture',
-        select: 'url',
-      },
+      select: 'displayName email isOnline avatar',
+    
     })
     .populate({
       path: 'last_message',

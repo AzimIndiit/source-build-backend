@@ -207,6 +207,7 @@ export interface IUser extends IUserBase<IUserProfile>, Document {
   lastName?: string;
   displayName?: string;
   avatar?: string;
+  isOnline?: boolean;
    
   // Instance methods
   comparePassword(candidatePassword: string): Promise<boolean>;

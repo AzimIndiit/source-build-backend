@@ -10,7 +10,7 @@ export async function findChatMessages(
   const skip = (page - 1) * limit;
 
   return this.find({ chat: chatId })
-    .sort({ created_at: -1 })
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .populate('sender', 'displayName email')

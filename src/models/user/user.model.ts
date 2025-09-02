@@ -106,7 +106,10 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(UserRole),
       default: UserRole.BUYER,
     },
-
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: Object.values(UserStatus),

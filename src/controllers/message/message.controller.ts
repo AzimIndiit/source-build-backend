@@ -59,7 +59,7 @@ export const sendMessage = [
 ];
 
 export const getMessages = [
-  validate(getMessagesSchema),
+  validate(getMessagesSchema,'query'),
   catchAsync(async (req: Request, res: Response) => {
     const { chatId, page = '1', limit = '10' } = req.query;
 
@@ -100,7 +100,7 @@ export const updateMessageStatus = [
 ];
 
 export const markAllAsRead = [
-  validate(markAllAsReadSchema),
+  validate(markAllAsReadSchema,'body'),
   catchAsync(async (req: Request, res: Response) => {
     const { chatId } = req.body;
     const userId = new Types.ObjectId(req.user?.id);

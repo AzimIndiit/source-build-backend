@@ -19,7 +19,6 @@ import {
   addReviewSchema,
   CreateOrderInput,
   UpdateOrderInput,
-  OrderFilterInput,
 } from '@models/order/order.validators.js';
 import { OrderStatus } from '@models/order/order.types.js';
 
@@ -50,7 +49,7 @@ export const createOrder = [
 export const getOrders = [
   validate(orderFilterSchema, 'query'),
   catchAsync(async (req: Request, res: Response) => {
-    const filters: OrderFilterInput = req.query as any;
+    const filters = req.query as any;
     const userId = req.user?.id;
     const userRole = req.user?.role;
     
@@ -69,11 +68,11 @@ export const getOrders = [
  * Get single order by ID
  */
 export const getOrder = [
-  validate(orderIdSchema, 'params'),
+  validate(orderNumberSchema, 'params'),
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     
-    const order = await orderService.getOrderById(id);
+    const order = await orderService.getOrderById(id as string);
     
     return ApiResponse.success(res, order, 'Order retrieved successfully');
   })
@@ -87,7 +86,7 @@ export const getOrderByNumber = [
   catchAsync(async (req: Request, res: Response) => {
     const { orderNumber } = req.params;
     
-    const order = await orderService.getOrderById(orderNumber);
+    const order = await orderService.getOrderById(orderNumber as string);
     
     return ApiResponse.success(res, order, 'Order retrieved successfully');
   })
@@ -108,7 +107,7 @@ export const updateOrder = [
       throw ApiError.unauthorized('User not authenticated');
     }
     
-    const order = await orderService.getOrderById(id);
+    const order = await orderService.getOrderById(id as string);
     
     Object.assign(order, updateData);
     await order.save();
@@ -130,7 +129,7 @@ export const updateOrderStatus = [
     const { status } = req.body;
     const userId = req.user?.id;
     
-    const order = await orderService.updateOrderStatus(id, status, userId);
+    const order = await orderService.updateOrderStatus(id as string, status, userId);
     
     logger.info('Order status updated', { orderId: id, status, userId });
     
@@ -148,7 +147,7 @@ export const assignDriver = [
     const { id } = req.params;
     const { driver } = req.body;
     
-    const order = await orderService.assignDriver(id, driver);
+    const order = await orderService.assignDriver(id as string, driver);
     
     logger.info('Driver assigned to order', { orderId: id, driverId: driver });
     
@@ -167,7 +166,7 @@ export const markAsDelivered = [
     const { proofOfDelivery } = req.body;
     const userId = req.user?.id;
     
-    const order = await orderService.getOrderById(id);
+    const order = await orderService.getOrderById(id as string);
     
     if (order.driver?.userRef?.toString() !== userId) {
       throw ApiError.forbidden('Only assigned driver can mark order as delivered');
@@ -202,7 +201,7 @@ export const cancelOrder = [
       throw ApiError.unauthorized('User not authenticated');
     }
     
-    const order = await orderService.cancelOrder(id, reason, userId);
+    const order = await orderService.cancelOrder(id as string, reason, userId);
     
     logger.info('Order cancelled', { orderId: id, userId, reason });
     
@@ -221,7 +220,7 @@ export const initiateRefund = [
     const { reason, amount } = req.body;
     const userId = req.user?.id;
     
-    const order = await orderService.getOrderById(id);
+    const order = await orderService.getOrderById(id as string);
     
     if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
       throw ApiError.badRequest('Can only refund delivered or cancelled orders');
@@ -253,7 +252,7 @@ export const addCustomerReview = [
       throw ApiError.unauthorized('User not authenticated');
     }
     
-    const order = await orderService.addCustomerReview(id, rating, review, userId);
+    const order = await orderService.addCustomerReview(id as string, rating, review, userId);
     
     logger.info('Customer review added', { orderId: id, userId, rating });
     
@@ -276,7 +275,7 @@ export const addDriverReview = [
       throw ApiError.unauthorized('User not authenticated');
     }
     
-    const order = await orderService.addDriverReview(id, rating, review, userId);
+    const order = await orderService.addDriverReview(id as string, rating, review, userId);
     
     logger.info('Driver review added', { orderId: id, userId, rating });
     
@@ -303,7 +302,7 @@ export const getOrderTracking = [
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     
-    const order = await orderService.getOrderById(id);
+    const order = await orderService.getOrderById(id as string);
     
     const tracking = order.trackingHistory || [];
     

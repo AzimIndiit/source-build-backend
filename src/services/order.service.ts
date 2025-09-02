@@ -152,8 +152,8 @@ class OrderService {
           .sort(sort)
           .skip(skip)
           .limit(limit)
-          .populate('customer.userRef', 'firstName lastName email phone avatar')
-          .populate('driver.userRef', 'firstName lastName email phone avatar')
+          .populate('customer.userRef', 'displayName email phone avatar')
+          .populate('driver.userRef', 'displayName email phone avatar')
           .populate('products.productRef', 'title price images'),
         OrderModal.countDocuments(query),
       ]);
@@ -180,11 +180,11 @@ class OrderService {
   async getOrderById(orderId: string): Promise<IOrder> {
     try {
       const order = await OrderModal.findOne({ 
-        $or: [{ orderNumber: orderId }, { _id: orderId }] 
+         orderNumber: orderId 
       })
-        .populate('customer.userRef', 'firstName lastName email phone avatar')
-        .populate('driver.userRef', 'firstName lastName email phone avatar')
-        .populate('products.productRef', 'title price images');
+        .populate('customer.userRef', 'displayName email phone avatar')
+        .populate('driver.userRef', 'displayName email phone avatar')
+        .populate('products.productRef', 'title price images slug');
 
       if (!order) {
         throw ApiError.notFound('Order not found');

@@ -170,43 +170,10 @@ const startServer = async (): Promise<void> => {
       console.log('\x1b[33m  ⚠️  Redis Not Available - Running without cache\x1b[0m\n');
     }
     
-    // Initialize Kafka (optional - will work without it)
-    try {
-      // Initialize Kafka producer
-      await kafkaService.initializeProducer();
-      
-      // Initialize Kafka consumer with topics to subscribe
-      const topics = Object.values(KafkaTopics);
-      await kafkaService.initializeConsumer(topics);
-      
-      // Register message handlers for different topics
-      kafkaService.registerHandler(KafkaTopics.USER_EVENTS, async (payload) => {
-        const message = JSON.parse(payload.message.value?.toString() || '{}');
-        logger.info('User event received:', message);
-      });
-      
-      kafkaService.registerHandler(KafkaTopics.ORDER_EVENTS, async (payload) => {
-        const message = JSON.parse(payload.message.value?.toString() || '{}');
-        logger.info('Order event received:', message);
-      });
-      
-      kafkaService.registerHandler(KafkaTopics.NOTIFICATION_EVENTS, async (payload) => {
-        const message = JSON.parse(payload.message.value?.toString() || '{}');
-        logger.info('Notification event received:', message);
-      });
-      
-      logger.info('Kafka services initialized successfully');
-      console.log('\x1b[32m  ✅ Kafka Services Initialized\x1b[0m');
-      console.log(`  📊 Kafka Topics Subscribed: ${topics.length} topics\n`);
-    } catch (error) {
-      logger.warn('Kafka connection failed, continuing without event streaming:', error);
-      console.log('\x1b[33m  ⚠️  Kafka Not Available - Running without event streaming\x1b[0m\n');
-    }
-    
     // Create HTTP server
     const httpServer = createServer(app);
     
-    // Initialize Socket.IO
+    // Initialize Socket.IO FIRST (before Kafka)
     const io = initializeSocketServer(httpServer);
     logger.info('Socket.IO server initialized', {
       corsOrigin: config.SOCKET_CLIENT_URL || '*',
@@ -214,6 +181,10 @@ const startServer = async (): Promise<void> => {
     });
     console.log('\x1b[32m  ✅ Socket.IO Initialized: \x1b[0mPort ' + config.PORT);
     console.log(`  📊 Socket CORS: ${config.SOCKET_CLIENT_URL || '*'}\n`);
+    
+    // Initialize Kafka handlers (optional - will work without it)
+    const { initializeKafkaHandlers } = await import('@/services/kafka-handlers.js');
+    await initializeKafkaHandlers();
     
     // Start the HTTP server
     httpServer.listen(config.PORT, () => {

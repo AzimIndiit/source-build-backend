@@ -5,7 +5,7 @@ import { MessageStatus } from './message.types.js';
 export async function markAsDelivered(this: IMessage): Promise<void> {
   if (this.status === MessageStatus.SENT) {
     this.status = MessageStatus.DELIVERED;
-    this.delivered_at = new Date();
+    this.deliveredAt = new Date();
     await this.save();
   }
 }
@@ -13,9 +13,9 @@ export async function markAsDelivered(this: IMessage): Promise<void> {
 export async function markAsRead(this: IMessage): Promise<void> {
   if (this.status !== MessageStatus.READ) {
     this.status = MessageStatus.READ;
-    this.read_at = new Date();
-    if (!this.delivered_at) {
-      this.delivered_at = new Date();
+    this.readAt = new Date();
+    if (!this.deliveredAt) {
+      this.deliveredAt = new Date();
     }
     await this.save();
   }
@@ -28,9 +28,9 @@ export async function addAttachment(this: IMessage, attachmentId: Types.ObjectId
   this.attachments.push(attachmentId);
   
   if (this.attachments.length > 0 && this.content) {
-    this.message_type = 'mix' as any;
+      this.messageType = 'mix' as any;
   } else if (this.attachments.length > 0) {
-    this.message_type = 'file' as any;
+    this.messageType = 'file' as any;
   }
   
   await this.save();

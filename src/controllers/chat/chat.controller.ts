@@ -9,7 +9,8 @@ import {
   createChatSchema, 
   getChatSchema, 
   deleteChatSchema, 
-  getUserChatsSchema 
+  getUserChatsSchema,
+  getOrCreateChatSchema 
 } from '@models/chat/chat.validators.js';
 
 export const createChat = [
@@ -34,7 +35,7 @@ export const createChat = [
 ];
 
 export const getUserChats = [
-  validate(getUserChatsSchema),
+  validate(getUserChatsSchema, "query"),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     
@@ -45,18 +46,15 @@ export const getUserChats = [
 ];
 
 export const getSingleChat = [
-  validate(getChatSchema),
+  validate(getChatSchema, "query"),
   catchAsync(async (req: Request, res: Response) => {
     const { chatId } = req.query;
 
     const chat = await ChatModal.findById(chatId)
       .populate({
         path: 'participants',
-        select: 'displayName email isOnline profilePicture',
-        populate: {
-          path: 'profilePicture',
-          select: 'url',
-        },
+        select: 'displayName email isOnline avatar',
+      
       })
       .populate('last_message');
 
@@ -68,8 +66,39 @@ export const getSingleChat = [
   }),
 ];
 
+export const getChatById = [
+  validate(deleteChatSchema, "params"),
+  catchAsync(async (req: Request, res: Response) => {
+    const chatId = req.params['id'];
+    const userId = new Types.ObjectId(req.user?.id);
+
+    const chat = await ChatModal.findOne({
+      _id: new Types.ObjectId(chatId),
+      participants: userId,
+    })
+      .populate({
+        path: 'participants',
+        select: 'displayName email isOnline avatar',
+      })
+      .populate('last_message')
+      .lean();
+
+    if (!chat) {
+      throw ApiError.notFound('Chat not found');
+    }
+
+    // Add id field for frontend compatibility
+    const chatWithId = {
+      ...chat,
+      id: chat._id.toString(),
+    };
+
+    return ApiResponse.success(res, chatWithId, 'Chat fetched successfully');
+  }),
+];
+
 export const deleteChat = [
-  validate(deleteChatSchema),
+  validate(deleteChatSchema, "params"),
   catchAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     const chatId = req.params['id'];
@@ -84,7 +113,51 @@ export const deleteChat = [
     }
 
     await ChatModal.findByIdAndDelete(chat._id);
-
+    
     return ApiResponse.success(res, null, 'Chat deleted successfully');
+  }),
+];
+
+export const getOrCreateChat = [
+  validate(getOrCreateChatSchema ,'body'),
+  catchAsync(async (req: Request, res: Response) => {
+    const { participantId } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw ApiError.unauthorized('User not authenticated');
+    }
+
+    // Create participants array with current user and target participant
+    const participants = [userId, participantId].map(id => new Types.ObjectId(id));
+
+    // Try to find existing chat
+    let chat = await ChatModal.findByParticipants(participants);
+
+    if (!chat) {
+      // Create new chat if not found
+      chat = await ChatModal.createOrFindChat(participants);
+    }
+
+    // Populate the chat data
+    const populatedChat = await ChatModal.findById(chat._id)
+      .populate({
+        path: 'participants',
+        select: 'displayName email isOnline avatar',
+      })
+      .populate('last_message')
+      .lean();
+
+    // Add id field for frontend compatibility
+    const chatWithId = {
+      ...populatedChat,
+      id: populatedChat?._id?.toString() || chat._id.toString(),
+    };
+
+    return ApiResponse.success(
+      res, 
+      chatWithId, 
+     'Chat found'
+    );
   }),
 ];

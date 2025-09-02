@@ -16,11 +16,9 @@ export const createMessageSchema = z.object({
 });
 
 export const getMessagesSchema = z.object({
-  query: z.object({
     chatId: objectIdSchema,
     page: z.string().optional().default('1'),
     limit: z.string().optional().default('10'),
-  }),
 });
 
 export const updateMessageStatusSchema = z.object({
@@ -33,7 +31,5 @@ export const updateMessageStatusSchema = z.object({
 });
 
 export const markAllAsReadSchema = z.object({
-  body: z.object({
     chatId: objectIdSchema,
-  }),
 });

@@ -6,7 +6,6 @@ import OrderModal from '../models/order/index.js';
 import UserModal from '../models/user/user.model.js';
 import ProductModal from '../models/product/product.model.js';
 import { OrderStatus } from '../models/order/order.types.js';
-import logger from '../config/logger.js';
 import readline from 'readline';
 
 // ES module compatibility
@@ -25,275 +24,104 @@ const rl = readline.createInterface({
 // Seed data for orders
 const orderSeedData = [
   {
-    orderNumber: 'ORD-2024-001',
-    customer: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 5,
-        review: 'Excellent service! The product was delivered on time and in perfect condition.',
-        reviewedAt: new Date('2024-12-11')
-      }
+    "orderNumber": "ORD-2025-000123",
+    "customer": {
+    "userRef": "68b049fca8b97d6908f3730a",
+    "reviewRef": {
+    "rating": 5,
+    "review": "Great service, fast delivery!",
+    "reviewedAt": "2025-01-15T14:30:00Z"
+    }
     },
-    driver: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 5,
-        review: 'Professional driver, handled the delivery with care.',
-        reviewedAt: new Date('2024-12-11')
-      }
+    "driver": {
+    "userRef": "68b04541d6c5decc192ca07e",
+    "reviewRef": {
+    "rating": 4,
+    "review": "Professional driver",
+    "reviewedAt": "2025-01-15T16:45:00Z"
+    }
     },
-    date: 'Dec 10, 2024',
-    amount: 517,
-    status: OrderStatus.DELIVERED,
-    products: [
-      {
-        id: 'PROD-001',
-        title: '(NEW) Westinghouse Chandelier Fixture Zaro 6 Light Iron',
-        quantity: 2,
-        price: 215,
-        deliveryDate: '12 December 2024',
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=128&h=96&fit=crop',
-      },
+    "products": [
+    {
+    "id": "prod-001",
+    "title": "Wireless Bluetooth Headphones",
+    "price": 79.99,
+    "quantity": 2,
+    "image": "https://example.com/headphones.jpg",
+    "deliveryDate": "Jan 20, 2025",
+    "productRef": "68b52e350d6cd821b01eac34",
+    "seller": "68b194070447bcc0f74d5a37"
+    },
+    {
+    "id": "prod-002",
+    "title": "USB-C Charging Cable",
+    "price": 15.99,
+    "quantity": 3,
+    "image": "https://example.com/cable.jpg",
+    "deliveryDate": "Jan 20, 2025",
+    "productRef": "68b52e350d6cd821b01eac34",
+    "seller": "68b194070447bcc0f74d5a37"
+    }
     ],
-    orderSummary: {
-      shippingAddress: {
-        name: 'Ethan Popa',
-        phone: '+91 972 234 5678',
-        address: 'SCO 50-51, Sub. City Center, 2nd Floor Sector 34A',
-        city: 'Jakarta',
-        state: 'Jakarta',
-        country: 'India',
-        zip: '160022',
-      },
-      proofOfDelivery: 'https://placehold.co/600x400',
-      paymentMethod: {
-        type: 'Credit Card',
-        cardType: 'VISA',
-        cardNumber: 'XXXX XXXX XXXX 8456',
-        status: 'completed',
-      },
-      subTotal: 430,
-      shippingFee: 10,
-      marketplaceFee: 43,
-      taxes: 34,
-      total: 517,
+    "date": "Jan 15, 2025",
+    "amount": 207.95,
+    "orderSummary": {
+    "shippingAddress": {
+    "name": "John Doe",
+    "phone": "+1234567890",
+    "address": "123 Main Street, Apt 4B",
+    "city": "New York",
+    "state": "NY",
+    "country": "USA",
+    "zip": "10001",
+    "isDefault": true
     },
-    actualDeliveryDate: new Date('2024-12-10'),
-  },
-  {
-    orderNumber: 'ORD-2024-002',
-    customer: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 4,
-        review: 'Good experience overall. The product quality was excellent.',
-        reviewedAt: new Date('2024-02-15')
-      }
+    "proofOfDelivery": "https://example.com/pod/ORD-2025-000123.jpg",
+    "paymentMethod": {
+    "type": "card",
+    "cardType": "VISA",
+    "cardNumber": "****4242",
+    "method": "credit_card",
+    "status": "completed",
+    "transactionId": "txn_1a2b3c4d5e6f",
+    "paidAt": "2025-01-15T10:30:00Z"
     },
-    driver: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 4,
-        review: 'Driver was professional and courteous.',
-        reviewedAt: new Date('2024-02-15')
-      }
+    "subTotal": 207.95,
+    "shippingFee": 9.99,
+    "marketplaceFee": 2.08,
+    "taxes": 18.72,
+    "total": 238.74
     },
-    date: 'Feb 13, 2024',
-    amount: 636,
-    status: OrderStatus.PROCESSING,
-    products: [
-      {
-        id: 'PROD-002',
-        title: 'Modern Floor Lamp with Adjustable Head',
-        quantity: 1,
-        price: 189,
-        deliveryDate: '15 February 2024',
-        image: 'https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=128&h=96&fit=crop',
-      },
-      {
-        id: 'PROD-003',
-        title: 'LED Desk Lamp with USB Charging',
-        quantity: 2,
-        price: 169,
-        deliveryDate: '15 February 2024',
-        image: 'https://images.unsplash.com/photo-1507494924047-60b8ee826ca9?w=128&h=96&fit=crop',
-      },
+    "status": "Out for Delivery",
+    "trackingHistory": [
+    {
+    "status": "Pending",
+    "timestamp": "2025-01-15T10:00:00Z",
+    "description": "Order placed"
+    },
+    {
+    "status": "Processing",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "description": "Payment confirmed, preparing order",
+    "updatedBy": "507f1f77bcf86cd799439016"
+    },
+    {
+    "status": "Out for Delivery",
+    "timestamp": "2025-01-15T14:00:00Z",
+    "location": "New York Distribution Center",
+    "description": "Package picked up by driver",
+    "updatedBy": "507f1f77bcf86cd799439012"
+    }
     ],
-    orderSummary: {
-      shippingAddress: {
-        name: 'Ashley Jackson',
-        phone: '+1 555 123 4567',
-        address: '123 Main Street, Apt 4B',
-        city: 'New York',
-        state: 'NY',
-        country: 'USA',
-        zip: '10001',
-      },
-      paymentMethod: {
-        type: 'Credit Card',
-        cardType: 'MASTERCARD',
-        cardNumber: 'XXXX XXXX XXXX 1234',
-        status: 'pending',
-      },
-      subTotal: 527,
-      shippingFee: 15,
-      marketplaceFee: 52,
-      taxes: 42,
-      total: 636,
-    },
-    estimatedDeliveryDate: new Date('2024-02-20'),
-  },
-  {
-    orderNumber: 'ORD-2024-003',
-    customer: {
-      // userRef will be added dynamically
-    },
-    date: 'Jul 28, 2024',
-    amount: 700,
-    status: OrderStatus.PENDING,
-    products: [
-      {
-        id: 'PROD-004',
-        title: 'Vintage Table Lamp Set (2 pieces)',
-        quantity: 1,
-        price: 577,
-        deliveryDate: '30 July 2024',
-        image: 'https://images.unsplash.com/photo-1565636572781-62e93e8c5c7e?w=128&h=96&fit=crop',
-      },
-    ],
-    orderSummary: {
-      shippingAddress: {
-        name: 'Aya Rossi',
-        phone: '+39 333 456 7890',
-        address: 'Via Roma 123',
-        city: 'Milan',
-        state: 'Lombardy',
-        country: 'Italy',
-        zip: '20121',
-      },
-      paymentMethod: {
-        type: 'PayPal',
-        cardNumber: 'aya.rossi@gmail.com',
-        status: 'pending',
-      },
-      subTotal: 577,
-      shippingFee: 20,
-      marketplaceFee: 57,
-      taxes: 46,
-      total: 700,
-    },
-    estimatedDeliveryDate: new Date('2024-08-05'),
-  },
-  {
-    orderNumber: 'ORD-2024-004',
-    customer: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 5,
-        review: 'Outstanding service! Everything was perfect from order to delivery.',
-        reviewedAt: new Date('2024-05-05')
-      }
-    },
-    driver: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 5,
-        review: 'Very friendly and professional. Highly recommended!',
-        reviewedAt: new Date('2024-05-05')
-      }
-    },
-    date: 'May 2, 2024',
-    amount: 992,
-    status: OrderStatus.OUT_FOR_DELIVERY,
-    products: [
-      {
-        id: 'PROD-005',
-        title: 'Industrial Style Pendant Light',
-        quantity: 3,
-        price: 245,
-        deliveryDate: '5 May 2024',
-        image: 'https://images.unsplash.com/photo-1565636572781-62e93e8c5c7e?w=128&h=96&fit=crop',
-      },
-      {
-        id: 'PROD-006',
-        title: 'Smart LED Bulb Set (4 pack)',
-        quantity: 2,
-        price: 42.5,
-        deliveryDate: '5 May 2024',
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=128&h=96&fit=crop',
-      },
-    ],
-    orderSummary: {
-      shippingAddress: {
-        name: 'Mehdi Keita',
-        phone: '+33 6 12 34 56 78',
-        address: '45 Rue de la République',
-        city: 'Paris',
-        state: 'Île-de-France',
-        country: 'France',
-        zip: '75001',
-      },
-      paymentMethod: {
-        type: 'Credit Card',
-        cardType: 'AMEX',
-        cardNumber: 'XXXX XXXX XXXX 9876',
-        status: 'completed',
-      },
-      subTotal: 820,
-      shippingFee: 25,
-      marketplaceFee: 82,
-      taxes: 65,
-      total: 992,
-    },
-    estimatedDeliveryDate: new Date('2024-05-03'),
-  },
-  {
-    orderNumber: 'ORD-2024-005',
-    customer: {
-      // userRef will be added dynamically
-      reviewRef: {
-        rating: 3,
-        review: 'Delivery was slightly delayed but product quality was good.',
-        reviewedAt: new Date('2024-04-30')
-      }
-    },
-    date: 'Apr 27, 2024',
-    amount: 251,
-    status: OrderStatus.CANCELLED,
-    cancelReason: 'Customer requested cancellation due to change of plans',
-    products: [
-      {
-        id: 'PROD-007',
-        title: 'Minimalist Table Lamp',
-        quantity: 1,
-        price: 207,
-        deliveryDate: '30 April 2024',
-        image: 'https://images.unsplash.com/photo-1507494924047-60b8ee826ca9?w=128&h=96&fit=crop',
-      },
-    ],
-    orderSummary: {
-      shippingAddress: {
-        name: 'Luis González',
-        phone: '+34 612 345 678',
-        address: 'Calle Mayor 15, 3º B',
-        city: 'Madrid',
-        state: 'Madrid',
-        country: 'Spain',
-        zip: '28013',
-      },
-      paymentMethod: {
-        type: 'Debit Card',
-        cardType: 'VISA',
-        cardNumber: 'XXXX XXXX XXXX 5555',
-        status: 'refunded',
-      },
-      subTotal: 207,
-      shippingFee: 8,
-      marketplaceFee: 20,
-      taxes: 16,
-      total: 251,
-    },
-  },
+    "deliveryInstructions": "Please leave package at front desk if not home",
+    "estimatedDeliveryDate": "2025-01-20T17:00:00Z",
+    "actualDeliveryDate": null,
+    "cancelReason": null,
+    "refundReason": null,
+    "notes": "Customer requested gift wrapping",
+    "createdAt": "2025-01-15T10:00:00Z",
+    "updatedAt": "2025-01-15T14:00:00Z"
+    }
 ];
 
 async function seedOrders() {

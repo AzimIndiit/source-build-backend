@@ -8,18 +8,19 @@ import logger from '@/config/logger.js'
 import UserModal from '@/models/user/user.model.js'
 import MessageModal from '@/models/message/message.model.js'
 import ChatModal from '@/models/chat/chat.model.js'
+import { MessageStatus } from '@/models/message/message.types.js'
 
 // Types
 interface SocketData {
   chatId: string
   senderId: string
   content: string
-  message_type?: string
+  messageType?: string
   attachments: any[]
-  status: string
-  sent_at: Date
-  created_at: Date
-  updated_at: Date
+  status: MessageStatus
+  sentAt: Date
+  createdAt: Date
+  updatedAt: Date
   _id: string
 }
 
@@ -124,11 +125,11 @@ const markAllAsRead = async (socket: Socket, chatId: string, userId: string): Pr
       {
         chat: new Types.ObjectId(chatId),
         sender: { $ne: new Types.ObjectId(userId) },
-        status: { $ne: 'read' },
+        status: { $ne: MessageStatus.READ },
       },
       {
-        status: 'read' as any,
-        read_at: new Date(),
+        status: MessageStatus.READ,
+        readAt: new Date(),
       }
     )
 
@@ -137,11 +138,8 @@ const markAllAsRead = async (socket: Socket, chatId: string, userId: string): Pr
     const chatResult = await ChatModal.findById(chatId)
       .populate({
         path: 'participants',
-        select: 'displayName email isOnline profilePicture',
-        populate: {
-          path: 'profilePicture',
-          select: 'url',
-        },
+        select: 'displayName email isOnline avatar',
+      
       })
       .populate({
         path: 'last_message',
@@ -169,8 +167,8 @@ const leaveChat = (socket: Socket, userId: string, data: ChatData): void => {
 const joinChat = (socket: Socket, userId: string, data: ChatData): void => {
   const { roomId } = data
   socket.join(roomId)
+  logger.info(`User ${userId} joined chat room: ${roomId}`)
   markAllAsRead(socket, roomId, userId)
-  logger.info(`User ${userId} joined chat: ${roomId}`)
 }
 
 const sendMessage = async (socket: Socket, _userId: string, data: SocketData): Promise<void> => {
@@ -180,12 +178,12 @@ const sendMessage = async (socket: Socket, _userId: string, data: SocketData): P
       message: {
         sender: data.senderId,
         content: data.content,
-        message_type: data.message_type || 'text',
-        attachments: data.attachments.length > 0 ? data.attachments.map((v) => v._id) : [],
-        status: data.status,
-        sentAt: data.sent_at,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        messageType: data.messageType || 'text',
+        attachments: data.attachments && data.attachments.length > 0 ? data.attachments.map((v) => v._id) : [],
+        status: 'sent',
+        sentAt: data.sentAt,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
       },
     }
 
@@ -203,7 +201,7 @@ const sendMessage = async (socket: Socket, _userId: string, data: SocketData): P
     }
 
     tempMessage.tempId = tempId
-
+    console.log('tempMessage', tempMessage)
     // Publish to Kafka
     await sendToKafka(tempMessage)
   } catch (error) {
@@ -215,26 +213,47 @@ const sendMessage = async (socket: Socket, _userId: string, data: SocketData): P
 const markAsDelivered = async (_userId: string, data: MessageData): Promise<void> => {
   try {
     const { messageId } = data
-    // Find the message and update it
+    logger.info('Marking message as delivered:', { messageId })
+    
     const message = await MessageModal.findById(messageId)
-    if (message && message.status !== 'delivered') {
-      message.status = 'delivered' as any
-      message.delivered_at = new Date()
+    if (message && message.status !== MessageStatus.DELIVERED) {
+      message.status = MessageStatus.DELIVERED
+      message.deliveredAt = new Date()
+      
+      logger.info('Saving message with delivered status:', { 
+        messageId: message._id,
+        oldStatus: message.status,
+        newStatus: MessageStatus.DELIVERED,
+        deliveredAt: message.deliveredAt
+      })
+      
       let result = await message.save()
 
       result = await result.populate('attachments', 'url mimetype originalname')
-      logger.info('Message marked as delivered')
+      result = await result.populate('sender', 'displayName email isOnline avatar')
+      logger.info('Message marked as delivered in database')
 
-      // Update Redis cache
-      await redisClient.hset(
-        `chat:${message.chat}:messages`,
-        message._id.toString(),
-        JSON.stringify(message)
-      )
-
-      if (io) {
-        io.to(message.chat.toString()).emit('message_delivered', result)
+      // Update Redis cache (with error handling)
+      try {
+        await redisClient.hset(
+          `chat:${message.chat}:messages`,
+          message._id.toString(),
+          JSON.stringify(message)
+        )
+      } catch (redisError) {
+        logger.warn('Redis cache update failed:', redisError)
       }
+      
+      // Emit the update
+      if (io) {
+        const roomName = message.chat.toString()
+        logger.info(`Emitting message_delivered to room ${roomName}`)
+        io.to(roomName).emit('message_delivered', result)
+      } else {
+        logger.error('Socket.IO instance not available for message_delivered event')
+      }
+    } else {
+      logger.info('Message not found or already delivered:', { messageId, status: message?.status })
     }
   } catch (error) {
     logger.error('Error marking message as delivered:', error)
@@ -246,8 +265,8 @@ const markAsRead = async (userId: string, data: MessageData): Promise<void> => {
     const { messageId } = data
     const message = await MessageModal.findById(messageId)
     if (message) {
-      message.read_at = new Date()
-      message.status = 'read' as any
+      message.readAt = new Date()
+      message.status = MessageStatus.READ
       let result = await message.save()
       result = await result.populate('attachments', 'url mimetype originalname')
 

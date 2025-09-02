@@ -5,8 +5,6 @@ import {
   IPaymentDetails,
   IOrderSummary,
   ICustomerInfo,
-  IDriverInfo,
-  ICustomerReview,
   IDriverReview,
   IOrderTracking,
   OrderStatus,

@@ -17,41 +17,39 @@ export const MessageSchema = new Schema<IMessage, IMessageModel, IMessageMethods
       type: String,
       trim: true,
     },
-    message_type: {
+    messageType: {
       type: String,
       enum: Object.values(MessageType),
       default: MessageType.TEXT,
     },
-    attachments: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'File',
-      },
-    ],
+    attachments: [{
+      type: Schema.Types.ObjectId,
+      ref: 'File',
+    }],
     status: {
       type: String,
       enum: Object.values(MessageStatus),
       default: MessageStatus.SENT,
     },
-    sent_at: {
+    sentAt: {
       type: Date,
       default: Date.now,
     },
-    delivered_at: {
+    deliveredAt: {
       type: Date,
     },
-    read_at: {
+    readAt: {
       type: Date,
     },
   },
   {
     timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
     },
   }
 );
 
-MessageSchema.index({ chat: 1, created_at: -1 });
+MessageSchema.index({ chat: 1, createdAt: -1 });
 MessageSchema.index({ sender: 1 });
 MessageSchema.index({ status: 1 });

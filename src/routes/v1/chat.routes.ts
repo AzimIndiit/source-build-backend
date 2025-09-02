@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/', chatController.createChat);
+router.post('/get-or-create', chatController.getOrCreateChat);
 router.get('/', chatController.getUserChats);
 router.get('/single', chatController.getSingleChat);
 router.delete('/:id', chatController.deleteChat);
