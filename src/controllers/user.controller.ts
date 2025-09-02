@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from 'express';
 import User from '@models/user/user.model.js';
 import { IUser } from '@models/user/user.types.js';

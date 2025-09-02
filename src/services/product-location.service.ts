@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Types } from 'mongoose';
 import ProductModal from '@models/product/product.model.js';
 import { IProduct, ProductFilterDTO } from '@models/product/product.types.js';

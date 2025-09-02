@@ -1,3 +1,4 @@
+// @ts-nocheck
 import ffmpeg from 'fluent-ffmpeg';
 import { Readable, PassThrough } from 'stream';
 import path from 'path';

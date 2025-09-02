@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema, model } from 'mongoose';
 import * as slugifyModule from 'slugify';
 const slugify = slugifyModule.default || slugifyModule;

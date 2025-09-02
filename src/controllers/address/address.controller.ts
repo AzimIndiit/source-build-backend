@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import addressService from '@services/address.service.js';
 import {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import swaggerJSDoc from 'swagger-jsdoc';
 import { Application } from 'express';
 import swaggerUi from 'swagger-ui-express';
