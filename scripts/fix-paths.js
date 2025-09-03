@@ -117,8 +117,26 @@ async function main() {
   console.log('Fixing TypeScript path aliases in dist directory...');
   
   try {
+    // Check if dist directory exists
+    try {
+      await readdir(distDir);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        console.log('Warning: dist directory does not exist. Skipping path fixing.');
+        console.log('This usually means TypeScript compilation failed or produced no output.');
+        return;
+      }
+      throw error;
+    }
+    
     const files = await getAllFiles(distDir);
     console.log(`Found ${files.length} JavaScript files`);
+    
+    if (files.length === 0) {
+      console.log('Warning: No JavaScript files found in dist directory.');
+      console.log('This usually means TypeScript compilation failed or produced no output.');
+      return;
+    }
     
     for (const file of files) {
       await fixFile(file);

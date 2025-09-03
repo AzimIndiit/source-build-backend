@@ -13,6 +13,8 @@
     "dev:debug": "DEBUG=app:* nodemon",
     "build": "tsc && node scripts/fix-paths.js",
     "build:simple": "tsc",
+    "build:check": "tsc --noEmit",
+    "build:verbose": "tsc --listEmittedFiles",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
     "pm2:start": "pm2 start ecosystem.config.cjs --env production",

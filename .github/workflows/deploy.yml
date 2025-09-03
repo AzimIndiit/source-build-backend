@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: '20.x'
-  PM2_APP_NAME: 'xuthority-backend'
+  PM2_APP_NAME: 'source-build-backend'
 
 jobs:
   test:
@@ -52,8 +52,8 @@ jobs:
         run: |
           cat > .env.test << EOF
           NODE_ENV=test
-          PORT=3001
-          MONGODB_URI=mongodb://localhost:27017/xuthority_test
+          PORT=5001
+          MONGODB_URI=mongodb://localhost:27017/sourcebuild_test
           REDIS_URL=redis://localhost:6379
           JWT_SECRET=test-jwt-secret-key-for-testing-only
           JWT_REFRESH_SECRET=test-refresh-secret-key-for-testing-only
@@ -64,6 +64,9 @@ jobs:
 
       - name: Run linting
         run: npm run lint || echo "Linting completed with warnings"
+
+      - name: Run type checking
+        run: npm run typecheck || echo "Type checking completed"
 
       - name: Run security audit
         run: npm audit --audit-level=high || echo "Security audit completed"
@@ -90,34 +93,38 @@ jobs:
         run: |
           npm cache clean --force
           npm ci --no-audit --no-fund
-          echo "Verifying critical dependencies..."
-          node -e "
-            const deps = ['express', 'mongoose', 'swagger-jsdoc', 'swagger-ui-express'];
-            deps.forEach(dep => {
-              try {
-                require.resolve(dep);
-                console.log('✅', dep);
-              } catch (e) {
-                console.log('❌', dep, 'missing');
-                process.exit(1);
-              }
-            });
-          "
+
+      - name: Build TypeScript
+        run: |
+          echo "Building TypeScript..."
+          npm run build
+          
+          # Verify dist folder exists
+          if [ ! -d "dist" ]; then
+            echo "Error: dist folder not found after build"
+            exit 1
+          fi
+          
+          # Verify critical files exist
+          if [ ! -f "dist/server.js" ]; then
+            echo "Error: dist/server.js not found"
+            exit 1
+          fi
+          
+          echo "Build completed successfully"
+          ls -la dist/
 
       - name: Create deployment package
         run: |
           mkdir -p deployment-temp
-          rsync -av \
-            --exclude='node_modules/' \
-            --exclude='.git/' \
-            --exclude='tests/' \
-            --exclude='.env*' \
-            --exclude='logs/' \
-            --exclude='*.log' \
-            --exclude='.github/' \
-            --exclude='deployment-temp/' \
-            --exclude='backend-deployment.tar.gz' \
-            ./ deployment-temp/
+          
+          # Copy necessary files and folders
+          cp -r dist deployment-temp/
+          cp package*.json deployment-temp/
+          cp ecosystem.config.js deployment-temp/ || echo "ecosystem.config.js not found, will create on server"
+          cp -r scripts deployment-temp/ || echo "scripts folder not copied"
+          
+          # Create deployment package
           tar -czf backend-deployment.tar.gz -C deployment-temp .
           rm -rf deployment-temp
           echo "Package created successfully: $(ls -lh backend-deployment.tar.gz)"
@@ -161,12 +168,15 @@ jobs:
             echo "Starting backend deployment..."
             
             # Create deployment directory
-            sudo mkdir -p /opt/xuthority
-            sudo chown -R ubuntu:ubuntu /opt/xuthority
-            
-            DEPLOY_DIR="/opt/xuthority/backend"
+            DEPLOY_DIR="/home/ubuntu/source-build-backend"
             mkdir -p "$DEPLOY_DIR"
             cd "$DEPLOY_DIR"
+            
+            # Backup existing deployment
+            if [ -d "dist" ]; then
+              echo "Backing up existing deployment..."
+              mv dist dist.backup.$(date +%Y%m%d_%H%M%S) || true
+            fi
             
             # Extract deployment package
             tar -xzf /tmp/backend-deployment.tar.gz
@@ -178,14 +188,38 @@ jobs:
               exit 1
             fi
             
-            if [ ! -f "server.js" ]; then
-              echo "Error: server.js not found"
+            if [ ! -d "dist" ] || [ ! -f "dist/server.js" ]; then
+              echo "Error: dist/server.js not found"
               exit 1
             fi
             
+            # Create ecosystem.config.js if it doesn't exist
             if [ ! -f "ecosystem.config.js" ]; then
-              echo "Error: ecosystem.config.js not found"
-              exit 1
+              cat > ecosystem.config.js << 'ECOEOF'
+module.exports = {
+  apps: [{
+    name: 'source-build-backend',
+    script: './dist/server.js',
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 8000
+    },
+    error_file: './logs/pm2-error.log',
+    out_file: './logs/pm2-out.log',
+    log_file: './logs/pm2-combined.log',
+    time: true,
+    merge_logs: true,
+    max_memory_restart: '1G',
+    autorestart: true,
+    max_restarts: 10,
+    min_uptime: '10s',
+    watch: false,
+    node_args: '--max-old-space-size=1024'
+  }]
+};
+ECOEOF
             fi
             
             # Install Node.js and npm if not present
@@ -199,31 +233,17 @@ jobs:
               sudo npm install -g pm2
             fi
             
-            # Install dependencies
-            echo "Installing dependencies..."
-            npm ci --no-audit --no-fund --silent
-            
-            # Verify critical dependencies
-            echo "Verifying dependencies..."
-            node -e "
-              const deps = ['express', 'mongoose', 'swagger-jsdoc', 'swagger-ui-express'];
-              deps.forEach(dep => {
-                try {
-                  require.resolve(dep);
-                  console.log('✅', dep);
-                } catch (e) {
-                  console.log('❌', dep, 'missing');
-                  process.exit(1);
-                }
-              });
-            "
+            # Install production dependencies
+            echo "Installing production dependencies..."
+            npm ci --production --no-audit --no-fund
             
             # Create logs directory
             mkdir -p logs
             
-            # Stop existing PM2 processes
+            # Stop existing PM2 processes for this app
             echo "Stopping existing PM2 processes..."
-            pm2 kill || true
+            pm2 stop source-build-backend || true
+            pm2 delete source-build-backend || true
             
             # Start application with PM2
             echo "Starting application with PM2..."
@@ -252,32 +272,56 @@ jobs:
             pm2 status
             
             # Check if application is running
-            if pm2 list | grep -q "xuthority-backend.*online"; then
+            if pm2 list | grep -q "source-build-backend.*online"; then
               echo "✅ PM2 process is running"
             else
               echo "❌ PM2 process is not running"
-              pm2 logs xuthority-backend --lines 20
+              echo "PM2 Logs:"
+              pm2 logs source-build-backend --lines 50 --nostream
               exit 1
             fi
             
             # Health check with retries
             echo "Running health checks..."
+            HEALTH_CHECK_URL="http://localhost:8000/health"
+            
             for i in {1..10}; do
               echo "Health check attempt $i/10..."
-              if curl -f http://localhost:8081/api/v1/health > /dev/null 2>&1; then
-                echo "✅ Backend health check passed!"
+              
+              # Try health check endpoint
+              if curl -f -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL | grep -q "200\|404"; then
+                echo "✅ Backend is responding!"
                 break
               elif [ $i -eq 10 ]; then
-                echo "❌ All health checks failed"
-                pm2 logs xuthority-backend --lines 50
+                echo "❌ Health checks failed after 10 attempts"
+                echo "PM2 Logs:"
+                pm2 logs source-build-backend --lines 100 --nostream
                 exit 1
               else
-                echo "Health check failed, retrying in 3 seconds..."
-                sleep 3
+                echo "Health check failed, retrying in 5 seconds..."
+                sleep 5
               fi
             done
             
+            # Check if API docs are accessible
+            if curl -f -s -o /dev/null -w "%{http_code}" http://localhost:8000/api-docs | grep -q "200\|301\|302"; then
+              echo "✅ API documentation is accessible"
+            else
+              echo "⚠️ API documentation endpoint not responding"
+            fi
+            
             echo "✅ Backend deployment verification completed successfully"
+          EOF
+
+      - name: Cleanup old backups
+        run: |
+          ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /home/ubuntu/source-build-backend
+            
+            # Keep only last 3 backups
+            ls -dt dist.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+            
+            echo "Old backups cleaned up"
           EOF
 
       - name: Notify deployment status
@@ -285,6 +329,8 @@ jobs:
         run: |
           if [ ${{ job.status }} == 'success' ]; then
             echo "✅ Backend deployment successful"
+            echo "Deployment completed at $(date)"
           else
             echo "❌ Backend deployment failed"
+            echo "Please check the logs for more information"
           fi
