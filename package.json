@@ -47,6 +47,8 @@
     "migration:rollback": "ts-node scripts/rollbackMigration.ts",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
+    "docker_build": "docker build -t source-build-backend .",
+    "docker_run": "docker run -p 8081:8081 source-build-backend",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
@@ -147,7 +149,7 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
-    "tsx": "^4.7.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "lint-staged": {

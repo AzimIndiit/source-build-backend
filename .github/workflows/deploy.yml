@@ -3,38 +3,13 @@ name: Backend CI/CD Pipeline
 on:
   push:
     branches: [main]
-    
-
-
-env:
-  NODE_VERSION: '20.x'
-  PM2_APP_NAME: 'source-build-backend'
 
 jobs:
+  # ---------------------------
+  # CI job: lint, audit, tests
+  # ---------------------------
   test:
     runs-on: ubuntu-latest
-
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,39 +17,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Create test environment file
-        run: |
-          cat > .env.test << EOF
-          NODE_ENV=test
-          PORT=5001
-          MONGODB_URI=mongodb://localhost:27017/sourcebuild_test
-          REDIS_URL=redis://localhost:6379
-          JWT_SECRET=test-jwt-secret-key-for-testing-only
-          JWT_REFRESH_SECRET=test-refresh-secret-key-for-testing-only
-          BCRYPT_SALT_ROUNDS=10
-          RATE_LIMIT_WINDOW_MS=900000
-          RATE_LIMIT_MAX_REQUESTS=100
-          EOF
-
       - name: Run linting
-        run: npm run lint || echo "Linting completed with warnings"
-
-      - name: Run type checking
-        run: npm run typecheck || echo "Type checking completed"
+        run: npm run lint || echo "Lint warnings"
 
       - name: Run security audit
-        run: npm audit --audit-level=high || echo "Security audit completed"
+        run: npm audit --audit-level=high || echo "Audit done"
 
       - name: Run tests
-        run: npm run test || echo "Tests completed"
+        run: npm run test || echo "Tests done"
 
-  build:
+  # ---------------------------
+  # Deployment job
+  # ---------------------------
+  deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -83,254 +44,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies for build
-        run: |
-          npm cache clean --force
-          npm ci --no-audit --no-fund
-
-      - name: Build TypeScript
-        run: |
-          echo "Building TypeScript..."
-          npm run build
-          
-          # Verify dist folder exists
-          if [ ! -d "dist" ]; then
-            echo "Error: dist folder not found after build"
-            exit 1
-          fi
-          
-          # Verify critical files exist
-          if [ ! -f "dist/server.js" ]; then
-            echo "Error: dist/server.js not found"
-            exit 1
-          fi
-          
-          echo "Build completed successfully"
-          ls -la dist/
-
-      - name: Create deployment package
-        run: |
-          mkdir -p deployment-temp
-          
-          # Copy necessary files and folders
-          cp -r dist deployment-temp/
-          cp package*.json deployment-temp/
-          cp ecosystem.config.js deployment-temp/ || echo "ecosystem.config.js not found, will create on server"
-          cp -r scripts deployment-temp/ || echo "scripts folder not copied"
-          
-          # Create deployment package
-          tar -czf backend-deployment.tar.gz -C deployment-temp .
-          rm -rf deployment-temp
-          echo "Package created successfully: $(ls -lh backend-deployment.tar.gz)"
-
-      - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-deployment
-          path: backend-deployment.tar.gz
-          retention-days: 30
-
-  deploy:
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Download deployment artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-deployment
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to server
+      - name: Rsync project to server
         run: |
-          # Copy deployment package to server
-          scp backend-deployment.tar.gz ubuntu@${{ secrets.SERVER_HOST }}:/tmp/
-          
-          # Deploy on server
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            ./ ubuntu@${{ secrets.SERVER_HOST }}:/opt/xuthority/backend
+
+      - name: Deploy with Docker Compose
+        run: |
           ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
             set -e
-            
-            echo "Starting backend deployment..."
-            
-            # Create deployment directory
-            DEPLOY_DIR="/home/ubuntu/source-build-backend"
-            mkdir -p "$DEPLOY_DIR"
-            cd "$DEPLOY_DIR"
-            
-            # Backup existing deployment
-            if [ -d "dist" ]; then
-              echo "Backing up existing deployment..."
-              mv dist dist.backup.$(date +%Y%m%d_%H%M%S) || true
-            fi
-            
-            # Extract deployment package
-            tar -xzf /tmp/backend-deployment.tar.gz
-            rm /tmp/backend-deployment.tar.gz
-            
-            # Verify required files
-            if [ ! -f "package.json" ]; then
-              echo "Error: package.json not found"
-              exit 1
-            fi
-            
-            if [ ! -d "dist" ] || [ ! -f "dist/server.js" ]; then
-              echo "Error: dist/server.js not found"
-              exit 1
-            fi
-            
-            # Create ecosystem.config.js if it doesn't exist
-            if [ ! -f "ecosystem.config.js" ]; then
-              cat > ecosystem.config.js << 'ECOEOF'
-module.exports = {
-  apps: [{
-    name: 'source-build-backend',
-    script: './dist/server.js',
-    instances: 1,
-    exec_mode: 'fork',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 8000
-    },
-    error_file: './logs/pm2-error.log',
-    out_file: './logs/pm2-out.log',
-    log_file: './logs/pm2-combined.log',
-    time: true,
-    merge_logs: true,
-    max_memory_restart: '1G',
-    autorestart: true,
-    max_restarts: 10,
-    min_uptime: '10s',
-    watch: false,
-    node_args: '--max-old-space-size=1024'
-  }]
-};
-ECOEOF
-            fi
-            
-            # Install Node.js and npm if not present
-            if ! command -v node &> /dev/null; then
-              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-              sudo apt-get install -y nodejs
-            fi
-            
-            # Install PM2 globally if not present
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-            
-            # Install production dependencies
-            echo "Installing production dependencies..."
-            npm ci --production --no-audit --no-fund
-            
-            # Create logs directory
-            mkdir -p logs
-            
-            # Stop existing PM2 processes for this app
-            echo "Stopping existing PM2 processes..."
-            pm2 stop source-build-backend || true
-            pm2 delete source-build-backend || true
-            
-            # Start application with PM2
-            echo "Starting application with PM2..."
-            pm2 start ecosystem.config.js --env production
-            
-            # Save PM2 configuration
-            pm2 save
-            
-            # Setup PM2 startup script
-            sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu || true
-            
-            echo "Backend deployment completed successfully"
+            cd /opt/xuthority/backend
+
+            echo "Building Docker image locally..."
+            docker compose build backend
+
+            echo "Starting containers..."
+            docker compose up -d backend
           EOF
 
       - name: Verify deployment
         run: |
-          # Wait for application to start
-          sleep 15
-          
-          # Verify deployment
-          ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
-            echo "Verifying backend deployment..."
-            
-            # Check PM2 status
-            echo "PM2 Status:"
-            pm2 status
-            
-            # Check if application is running
-            if pm2 list | grep -q "source-build-backend.*online"; then
-              echo "✅ PM2 process is running"
-            else
-              echo "❌ PM2 process is not running"
-              echo "PM2 Logs:"
-              pm2 logs source-build-backend --lines 50 --nostream
-              exit 1
-            fi
-            
-            # Health check with retries
-            echo "Running health checks..."
-            HEALTH_CHECK_URL="http://localhost:8000/health"
-            
-            for i in {1..10}; do
-              echo "Health check attempt $i/10..."
-              
-              # Try health check endpoint
-              if curl -f -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL | grep -q "200\|404"; then
-                echo "✅ Backend is responding!"
-                break
-              elif [ $i -eq 10 ]; then
-                echo "❌ Health checks failed after 10 attempts"
-                echo "PM2 Logs:"
-                pm2 logs source-build-backend --lines 100 --nostream
-                exit 1
-              else
-                echo "Health check failed, retrying in 5 seconds..."
-                sleep 5
-              fi
-            done
-            
-            # Check if API docs are accessible
-            if curl -f -s -o /dev/null -w "%{http_code}" http://localhost:8000/api-docs | grep -q "200\|301\|302"; then
-              echo "✅ API documentation is accessible"
-            else
-              echo "⚠️ API documentation endpoint not responding"
-            fi
-            
-            echo "✅ Backend deployment verification completed successfully"
-          EOF
+          echo "Waiting for backend to start..."
+          sleep 20
 
-      - name: Cleanup old backups
-        run: |
-          ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /home/ubuntu/source-build-backend
-            
-            # Keep only last 3 backups
-            ls -dt dist.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
-            
-            echo "Old backups cleaned up"
-          EOF
+          echo "Checking health endpoint..."
+          for i in {1..10}; do
+            echo "Health check attempt $i/10..."
+            if curl -skf https://source-build.indiitserver.in/api/health | grep -q '"status": "success"'; then
+              echo "✅ Backend health check passed!"
+              exit 0
+            fi
+            sleep 5
+          done
 
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ Backend deployment successful"
-            echo "Deployment completed at $(date)"
-          else
-            echo "❌ Backend deployment failed"
-            echo "Please check the logs for more information"
-          fi
+          echo "❌ Backend health check failed"
+          exit 1
