@@ -54,6 +54,16 @@ jobs:
 
       - name: Rsync project to server
         run: |
+          ssh ubuntu@${{ secrets.SERVER_HOST }} "sudo mkdir -p /opt/source-build/backend && sudo chown -R ubuntu:ubuntu /opt/source-build"
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            ./ ubuntu@${{ secrets.SERVER_HOST }}:/opt/source-build/backend
+
+
+      - name: Rsync project to server
+        run: |
           rsync -avz --delete \
             --exclude='.git' \
             --exclude='node_modules' \
