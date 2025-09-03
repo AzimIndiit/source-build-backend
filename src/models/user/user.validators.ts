@@ -88,18 +88,7 @@ export const sellerProfileSchema = z.object({
 export const driverProfileSchema = z.object({
   ...baseProfileFields,
   role: z.literal(UserRole.DRIVER),
-  driverLicense: z.object({
-    number: z.string().min(1, 'Driver license number is required'),
-    licenceImages: z.array(z.string()).min(1, 'Driver license images are required'),
-    verified: z.boolean().optional(),
-  }),
-  vehicles: z.array(z.object({
-    make: z.string(),
-    model: z.string(),
-    vehicleImages: z.array(z.string()).min(1, 'Vehicle images are required'),
-    insuranceImages: z.array(z.string()).min(1, 'Insurance images are required'),
-    registrationNumber: z.string().min(1, 'Registration number is required'),
-  })).optional(),
+ 
   phone: phoneValidation, // Phone is required for drivers
 });
 
@@ -198,18 +187,7 @@ const sellerRegistrationSchema = baseRegistrationSchema.extend({
 const driverRegistrationSchema = baseRegistrationSchema.extend({
   role: z.literal(UserRole.DRIVER),
   phone: phoneValidation,  // Phone is required for drivers
-  driverLicense: z.object({
-    number: z.string().min(1, 'Driver license number is required'),
-    licenceImages: z.array(z.string()).min(1, 'Driver license images are required'),
-    verified: z.boolean().optional(),
-  }),
-  vehicles: z.array(z.object({
-    make: z.string(),
-    model: z.string(),
-    vehicleImages: z.array(z.string()).min(1, 'Vehicle images are required'),
-    insuranceImages: z.array(z.string()).min(1, 'Insurance images are required'),
-    registrationNumber: z.string().min(1, 'Registration number is required'),
-  })).optional(),
+  
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -292,14 +270,7 @@ export const validateRegistrationInput = (input: any) => {
       case 'driver':
         const driverValidation = z.object({
           phone: z.string().min(10, 'Phone number is required for drivers').regex(/^[2-9]\d{2}[2-9]\d{6}$/, 'Invalid phone number format'),
-          driverLicenseNumber: z.string().min(1, 'Driver license number is required'),
-          licenceImages: z.array(z.string()).min(1, 'Driver license images are required'),
-          vehicleType: z.string().min(1, 'Vehicle type is required'),
-          vehicleMake: z.string().min(1, 'Vehicle make is required'),
-          vehicleModel: z.string().min(1, 'Vehicle model is required'),
-          vehicleImages: z.array(z.string()).min(1, 'Vehicle images are required'),
-          insuranceImages: z.array(z.string()).min(1, 'Insurance images are required'),
-          vehicleRegistrationNumber: z.string().min(1, 'Vehicle registration number is required'),
+
         });
         
         try {

@@ -2,23 +2,37 @@ import { Redis } from 'ioredis';
 import config from './index.js';
 import logger from './logger.js';
 
-const redisOptions: any = {
-  host: config.REDIS_HOST || 'localhost',
-  port: config.REDIS_PORT || 6379,
-  db: config.REDIS_DB || 0,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-  retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  }
-};
+let redisClient: Redis;
 
-if (config.REDIS_PASSWORD) {
-  redisOptions.password = config.REDIS_PASSWORD;
+// Check if REDIS_URL is provided and use it directly
+if (config.REDIS_URL) {
+  // Parse the Redis URL to extract password if present
+  // Format: redis://:password@host:port/db
+  redisClient = new Redis(config.REDIS_URL, {
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    }
+  });
+} else {
+  // Fall back to individual configuration options
+  const redisOptions: any = {
+    host: config.REDIS_HOST || 'localhost',
+    port: config.REDIS_PORT || 6379,
+    db: config.REDIS_DB || 0,
+    password: config.REDIS_PASSWORD || 'redis123', // Use default password if not provided
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    }
+  };
+
+  redisClient = new Redis(redisOptions);
 }
-
-const redisClient = new Redis(redisOptions);
 
 
 

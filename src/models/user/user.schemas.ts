@@ -178,6 +178,14 @@ export const driverProfileSchema = new Schema<IDriverProfile>(
       insuranceImages: [String],
       registrationNumber: String,
     }],
+    isVehicles: {
+      type: Boolean,
+      default: false,
+    },
+    isLicense: {
+      type: Boolean,
+      default: false,
+    },
     
   },
   { _id: false, discriminatorKey: 'role' }

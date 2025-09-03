@@ -13,6 +13,7 @@ import { createNotificationService } from '@/services/notification.service.js'
 import { getMessage } from '@/utils/getMessage.js'
 import UserModal from '@/models/user/user.model.js'
 import emailService from '@/services/email.service.js'
+import { formatUserResponse } from '../auth/auth.controller'
 
 /**
  * Create and send OTP
@@ -123,11 +124,11 @@ export const verifyOtp = [
         userId: user._id,
         email: user.email,
       })
-
+      const userResponse = formatUserResponse(result.user)
       return ApiResponse.success(
         res,
         {
-          user: result.user,
+          user: userResponse ,
           tokens,
           isVerified: true,
         },

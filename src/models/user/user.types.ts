@@ -126,6 +126,8 @@ export interface IDriverProfile extends IBaseProfile {
     insuranceImages: string[],
     registrationNumber: string
   }],
+  isVehicles?: boolean;
+  isLicense?: boolean;
 
 }
 

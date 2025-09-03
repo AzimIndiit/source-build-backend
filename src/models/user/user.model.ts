@@ -237,15 +237,7 @@ userSchema.pre<IUser>('save', async function (next) {
 
   if (this.role === UserRole.DRIVER) {
     const driverProfile = this.profile as any
-    if (!driverProfile?.driverLicense?.number) {
-      return next(new Error('Driver license number is required for drivers'))
-    }
-    if (!driverProfile?.driverLicense?.expiryDate) {
-      return next(new Error('Driver license expiry date is required for drivers'))
-    }
-    if (!driverProfile?.driverLicense?.state) {
-      return next(new Error('Driver license state is required for drivers'))
-    }
+  
   }
 
   // Ensure only one default address per type

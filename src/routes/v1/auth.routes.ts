@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import authController from '@controllers/auth/auth.controller.js'
 import completeProfileController from '@controllers/auth/complete-profile.controller.js'
+import completeGoogleSignupController from '@controllers/auth/completeGoogleSignup.controller.js'
+import googleAuthCallback from '@controllers/auth/googleAuthCallback.controller.js'
 import { authenticate } from '@middlewares/auth.middleware.js'
 import '@config/passport.js' // Initialize passport strategies
 
@@ -717,7 +719,7 @@ router.get('/google', authController.googleLogin)
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/google/callback', authController.googleCallback)
+router.get('/google/callback', googleAuthCallback)
 
 /**
  * @swagger
@@ -816,6 +818,84 @@ router.get('/google/failure', authController.googleFailure)
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/complete-profile', authenticate, completeProfileController.completeProfile)
+
+/**
+ * @swagger
+ * /api/v1/auth/complete-google-signup:
+ *   post:
+ *     summary: Complete Google OAuth signup with role selection
+ *     description: Complete signup for users who authenticated via Google but need to select role and provide additional info
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             oneOf:
+ *               - type: object
+ *                 title: Buyer Role
+ *                 required:
+ *                   - userId
+ *                   - role
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: [buyer]
+ *               - type: object
+ *                 title: Driver Role
+ *                 required:
+ *                   - userId
+ *                   - role
+ *                   - phone
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: [driver]
+ *                   phone:
+ *                     type: string
+ *               - type: object
+ *                 title: Seller Role
+ *                 required:
+ *                   - userId
+ *                   - role
+ *                   - businessName
+ *                   - businessAddress
+ *                   - phone
+ *                   - einNumber
+ *                   - localDelivery
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: [seller]
+ *                   businessName:
+ *                     type: string
+ *                   businessAddress:
+ *                     type: string
+ *                   phone:
+ *                     type: string
+ *                   cellPhone:
+ *                     type: string
+ *                   einNumber:
+ *                     type: string
+ *                   localDelivery:
+ *                     type: boolean
+ *                   salesTaxId:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Signup completed successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ */
+router.post('/complete-google-signup', completeGoogleSignupController.completeGoogleSignup)
 
 /**
  * @swagger

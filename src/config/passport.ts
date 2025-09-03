@@ -56,16 +56,18 @@ passport.use(
         });
 
         if (!user) {
-          // Get role from session or default to buyer
-          const role = (req.session?.role as UserRole) || UserRole.BUYER;
+          // Get role from session if provided (for direct signup with role selection)
+          const role = req.session?.role as UserRole | undefined;
           
-          // Validate role
-          if (!Object.values(UserRole).includes(role) || role === UserRole.ADMIN) {
-            logger.warn('Invalid role attempted via Google OAuth', { role });
-            return done(new Error('Invalid registration role'), null);
+          // If a role is provided, validate it
+          if (role) {
+            if (!Object.values(UserRole).includes(role) || role === UserRole.ADMIN) {
+              logger.warn('Invalid role attempted via Google OAuth', { role });
+              return done(new Error('Invalid registration role'), null);
+            }
           }
 
-          // Base user data
+          // Base user data - create without role if not provided
           const userData: any = {
             email: email.toLowerCase(),
             googleId: profile.id,
@@ -75,50 +77,64 @@ passport.use(
             displayName: profile.displayName || profile.name?.givenName || email.split('@')[0],
             avatar: profile.photos?.[0]?.value,
             isEmailVerified: true, // Google accounts are pre-verified
-            role: role,
-            termsAccepted: true, // Will need to be confirmed in UI
+            termsAccepted: false, // Will need to be confirmed in UI with role selection
           };
 
-          // Build role-specific profile and set status based on role
-          switch (role) {
-            case UserRole.BUYER:
-              userData.status = UserStatus.ACTIVE; // Buyers can be active immediately
-              userData.profile = {
-                role: UserRole.BUYER,
-                // phone is optional for buyers
-              };
-              break;
+          // Only set role and profile if role was provided
+          if (role) {
+            userData.role = role;
+            userData.termsAccepted = true;
+            
+            // Build role-specific profile and set status based on role
+            switch (role) {
+              case UserRole.BUYER:
+                userData.status = UserStatus.ACTIVE; // Buyers can be active immediately
+                userData.profile = {
+                  role: UserRole.BUYER,
+                  addresses: [],
+                  avatar: profile.photos?.[0]?.value,
+                };
+                break;
 
-            case UserRole.SELLER:
-              // Seller needs additional info - mark as pending
-              userData.status = UserStatus.PENDING;
-              userData.profile = {
-                role: UserRole.SELLER,
-                phone: '', // Required - needs to be collected
-                businessName: '', // Required - needs to be collected
-                einNumber: '', // Required - needs to be collected
-                salesTaxId: '', // Required - needs to be collected
-                addresses: [],
-                
-                localDelivery: false,
-              };
-              break;
+              case UserRole.SELLER:
+                // Seller needs additional info - mark as pending
+                userData.status = UserStatus.PENDING;
+                userData.profile = {
+                  role: UserRole.SELLER,
+                  phone: '', // Required - needs to be collected
+                  businessName: '', // Required - needs to be collected
+                  einNumber: '', // Required - needs to be collected
+                  salesTaxId: '', // Required - needs to be collected
+                  addresses: [],
+                  localDelivery: false,
+                  avatar: profile.photos?.[0]?.value,
+                };
+                break;
 
-            case UserRole.DRIVER:
-              // Driver needs additional info - mark as pending
-              userData.status = UserStatus.PENDING;
-              userData.profile = {
-                role: UserRole.DRIVER,
-                phone: '', // Required - needs to be collected
-                addresses: [],
-                driverLicense: {
-                  number: '', // Required - needs to be collected
-                  verified: false,
-                },
-                vehicle: [],
-                
-              };
-              break;
+              case UserRole.DRIVER:
+                // Driver needs additional info - mark as pending
+                userData.status = UserStatus.PENDING;
+                userData.profile = {
+                  role: UserRole.DRIVER,
+                  phone: '', // Required - needs to be collected
+                  addresses: [],
+                  driverLicense: {
+                    number: '', // Required - needs to be collected
+                    verified: false,
+                    licenceImages: [],
+                  },
+                  vehicles: [],
+                  avatar: profile.photos?.[0]?.value,
+                };
+                break;
+            }
+          } else {
+            // No role provided - user needs to select role
+            userData.status = UserStatus.PENDING;
+            userData.role = null; // No role assigned yet
+            userData.profile = {
+              addresses: [],
+            };
           }
 
           user = await UserModal.create(userData);

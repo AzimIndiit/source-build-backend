@@ -20,6 +20,82 @@ import { getMessage } from '@/utils/getMessage.js'
 import { createNotificationService } from '@/services/notification.service.js'
 
 /**
+ * Format user response payload
+ * Helper function to create consistent user response objects based on role
+ */
+export const formatUserResponse = (user: IUser) => {
+  const userProfile = user.profile as any;
+  
+  // Base fields common to all users
+  const baseResponse: any = {
+    id: user._id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    displayName: user.displayName,
+    role: user.role,
+    accountType: user.role, // For compatibility
+    isVerified: user.isVerified,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    avatar: userProfile?.avatar,
+  };
+
+  // Add role-specific fields based on user role
+  switch (user.role) {
+    case UserRole.SELLER:
+      return {
+        ...baseResponse,
+        phone: userProfile?.phone,
+        businessName: userProfile?.businessName,
+        businessAddress: userProfile?.businessAddress || userProfile?.address,
+        cellPhone: userProfile?.cellPhone,
+        localDelivery: userProfile?.localDelivery,
+        einNumber: userProfile?.einNumber,
+        salesTaxId: userProfile?.salesTaxId,
+        region: userProfile?.region,
+        address: userProfile?.address,
+        description: userProfile?.description,
+      };
+
+    case UserRole.DRIVER:
+      return {
+        ...baseResponse,
+        phone: userProfile.phone,
+        address: userProfile?.address,
+        isVehicles: userProfile?.isVehicles ,
+        isLicense:userProfile?.isLicense,
+        
+      };
+
+    case UserRole.BUYER:
+      return {
+        ...baseResponse,
+        address: userProfile?.address,
+        region: userProfile?.region,
+      };
+
+    case UserRole.ADMIN:
+      return {
+        ...baseResponse,
+        phone: user.phone,
+        department: userProfile?.department,
+        adminLevel: userProfile?.adminLevel,
+        lastLoginIP: userProfile?.lastLoginIP,
+        twoFactorEnabled: userProfile?.twoFactorEnabled || false,
+      };
+
+    default:
+      // Fallback for any other roles
+      return {
+        ...baseResponse,
+        phone: user.phone,
+        address: userProfile?.address,
+      };
+  }
+};
+
+/**
  * Set authentication cookies
  */
 const setAuthCookies = (res: Response, tokens: { accessToken: string; refreshToken: string }) => {
@@ -57,7 +133,6 @@ export const register = [
   catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     // First, determine the role to use the appropriate validation
     const { role } = req.body
-
     // Enhanced validation with better error messages
     try {
       const validated = await registerUserSchema.parseAsync(req.body)
@@ -116,10 +191,7 @@ export const register = [
               } else if (!req.body.phone) {
                 message = 'Phone number is required for driver registration'
                 field = 'phone'
-              } else if (!req.body.driverLicenseNumber) {
-                message = 'Driver license number is required for driver registration'
-                field = 'driverLicenseNumber'
-              }
+              } 
             }
           }
 
@@ -220,7 +292,7 @@ export const register = [
     console.log('registerData', registerData)
     registerData = { ...registerData, firstName: req.body.firstName, lastName: req.body.lastName }
     // Register the user
-    const { user, tokens, otpSent } = await authService.register(registerData)
+    const { user, otpSent } = await authService.register(registerData)
 
 
 
@@ -232,11 +304,12 @@ export const register = [
     //   role: user.role
     // });
 
+    const userResponse = formatUserResponse(user)
+
     return ApiResponse.created(
       res,
       {
-        user,
-        tokens,
+        user:userResponse,
         otpSent,
       },
       'Registration successful. Please verify your email.'
@@ -282,11 +355,13 @@ export const login = [
     })
 
     logger.info('User logged in successfully', { userId: user._id, email: user.email })
-
+      
+  
+   const userResponse = formatUserResponse(user)
     return ApiResponse.success(
       res,
       {
-        user,
+        user: userResponse,
         tokens,
       },
       'Login successful'
@@ -421,32 +496,37 @@ export const resetPassword = [
  * Google OAuth login with role selection
  */
 export const googleLogin = (req: Request, res: Response, next: NextFunction) => {
-  const role = req.query['role'] as UserRole
+  // Role is optional for login - only required for signup
+  const role = req.query['role'] as UserRole | undefined
 
-  // Validate role
-  if (!role || !Object.values(UserRole).includes(role)) {
-    return ApiResponse.badRequest(
-      res,
-      'Valid role parameter is required (buyer, seller, or driver)'
-    )
-  }
+  // If role is provided, validate it
+  if (role) {
+    if (!Object.values(UserRole).includes(role)) {
+      return ApiResponse.badRequest(
+        res,
+        'Invalid role parameter. Must be buyer, seller, or driver'
+      )
+    }
 
-  if (role === UserRole.ADMIN) {
-    return ApiResponse.forbidden(res, 'Admin registration via Google is not allowed')
+    if (role === UserRole.ADMIN) {
+      return ApiResponse.forbidden(res, 'Admin registration via Google is not allowed')
+    }
   }
 
   logger.info('Google OAuth login attempt', {
     ip: req.ip,
-    role,
+    role: role || 'not-specified',
   })
 
-  // Store role in session for use in callback
-  ;(req.session as any).role = role
+  // Store role in session if provided
+  if (role) {
+    ;(req.session as any).role = role
+  }
 
   // Initiate Google OAuth flow
   passport.authenticate('google', {
     scope: ['profile', 'email'],
-    state: role, // Pass role as state parameter
+    state: role || '', // Pass role as state parameter if provided
   })(req, res, next)
 }
 
@@ -465,11 +545,22 @@ export const googleCallback = [
 
     logger.info('Google OAuth callback success', {
       userId: user._id,
-      role,
+      role: role || 'no-role',
       status: user.status,
     })
 
-    // Check if additional information is needed
+    // Check if user has no role (new user needs to select role)
+    if (!user.role) {
+      // Redirect to login page with content parameter for role selection
+      const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000')
+      redirectUrl.pathname = '/auth/login'
+      redirectUrl.searchParams.append('content', user._id.toString())
+      
+      logger.info('Redirecting to role selection', { userId: user._id })
+      return res.redirect(redirectUrl.toString())
+    }
+
+    // Check if additional information is needed for existing roles
     const needsAdditionalInfo =
       (role === UserRole.SELLER &&
         (!(user.profile as any)?.businessName || !(user.profile as any)?.einNumber)) ||
@@ -532,31 +623,9 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response) => 
     throw ApiError.unauthorized('User not authenticated')
   }
 
-  // Remove sensitive fields
-  const userResponse = {
-    id: user._id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    displayName: user.displayName || `${user.firstName} ${user.lastName}`.trim(),
-    role: user.role,
-    accountType: user.role, // For compatibility
-    isVerified: user.isVerified,
-    phone: user.phone,
-    businessName: (user.profile as any)?.businessName,
-    businessAddress: (user.profile as any)?.businessAddress || (user.profile as any)?.address,
-    cellPhone: (user.profile as any)?.cellPhone,
-    localDelivery: (user.profile as any)?.localDelivery,
-    einNumber: (user.profile as any)?.einNumber,
-    salesTaxId: (user.profile as any)?.salesTaxId,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    region: (user.profile as any)?.region,
-    address: (user.profile as any)?.address,
-    description: (user.profile as any)?.description,
-    avatar: (user.profile as any)?.avatar,
-  }
-
+  // Format user response using helper function
+  const userResponse = formatUserResponse(user)
+console.log('userResponse', userResponse)
   return ApiResponse.success(
     res,
     {
