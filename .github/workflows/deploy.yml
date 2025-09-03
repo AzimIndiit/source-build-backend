@@ -87,7 +87,7 @@ jobs:
           echo "Checking health endpoint..."
           for i in {1..10}; do
             echo "Health check attempt $i/10..."
-            if curl -skf https://source-build.indiitserver.in/api/health | grep -q '"status": "success"'; then
+            if if curl -skf https://source-build.indiitserver.in/api/health | jq -e '.status == "success"' > /dev/null; then
               echo "✅ Backend health check passed!"
               exit 0
             fi
