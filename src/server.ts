@@ -85,8 +85,12 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '100mb',
+  parameterLimit: 50000 
+}));
 
 // Data sanitization against NoSQL query injection
 // app.use(mongoSanitize()); // Temporarily disabled - incompatible with Express 5

@@ -263,7 +263,7 @@ export const userSchemaOptions = {
  */
 export const createUserIndexes = (schema: Schema) => {
   // Single field indexes
-  schema.index({ email: 1 });
+  // email already has unique index from schema definition
   schema.index({ displayName: 1 });
   schema.index({ role: 1 });
   schema.index({ status: 1 });

@@ -174,12 +174,10 @@ export const fileSchema = new Schema<IFile>(
     isImage: { 
       type: Boolean, 
       default: false,
-      index: true,
     },
     isVideo: { 
       type: Boolean, 
       default: false,
-      index: true,
     },
     originalDimensions: {
       width: { 
@@ -235,7 +233,7 @@ export const createFileIndexes = (schema: Schema) => {
   schema.index({ isImage: 1 });
   schema.index({ isVideo: 1 });
   schema.index({ createdAt: -1 });
-  schema.index({ s3Key: 1 });
+  // s3Key already has unique index from schema definition
   schema.index({ size: 1 });
   
   // Compound indexes for common queries
