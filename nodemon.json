@@ -1,4 +1,4 @@
-npm run {
+{
   "watch": ["src", ".env"],
   "ext": "ts,json",
   "ignore": ["src/**/*.test.ts", "src/**/*.spec.ts"],
