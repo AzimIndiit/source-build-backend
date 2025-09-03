@@ -65,14 +65,7 @@ jobs:
         run: |
           ssh ubuntu@${{ secrets.SERVER_HOST }} "cp /home/ubuntu/source-build-backend/.env /opt/source-build/backend/.env"
 
-      - name: Rsync project to server
-        run: |
-          rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.github' \
-            ./ ubuntu@${{ secrets.SERVER_HOST }}:/opt/source-build/backend
-
+   
       - name: Deploy with Docker Compose
         run: |
           ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
