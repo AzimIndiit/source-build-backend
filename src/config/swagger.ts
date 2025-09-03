@@ -378,17 +378,17 @@ const swaggerUiOptions = {
  */
 export const setupSwagger = (app: Application): void => {
   // Serve Swagger API documentation
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  app.use('/api/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
   // Serve raw swagger.json
-  app.get('/api-docs.json', (req, res) => {
+  app.get('/api/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
 
   // Redirect /docs to /api-docs
-  app.get('/docs', (req, res) => {
-    res.redirect('/api-docs');
+  app.get('/api/docs', (req, res) => {
+    res.redirect('/api/api-docs');
   });
 
   console.log(`  ${chalk.magenta('📚 Swagger Documentation:')}`);

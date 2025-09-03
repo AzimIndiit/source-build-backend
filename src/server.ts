@@ -124,15 +124,15 @@ app.get('/', (_req, res) => {
     version: '1.0.0',
     endpoints: {
       api: '/api/v1',
-      health: '/health',
-      documentation: '/api-docs',
+      health: '/api/health',
+      documentation: '/api/api-docs',
     },
     timestamp: new Date().toISOString(),
   });
 });
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
+app.get('/api/health', (_req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Server is running',
