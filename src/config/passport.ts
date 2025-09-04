@@ -67,6 +67,14 @@ passport.use(
             }
           }
 
+          // Process Google avatar URL to prevent rate limiting
+          let avatarUrl = profile.photos?.[0]?.value;
+          if (avatarUrl) {
+            // Replace the size parameter to get a larger, non-cropped image
+            // This helps avoid rate limiting and provides better quality
+            avatarUrl = avatarUrl.replace(/s\d+-c/, 's400');
+          }
+
           // Base user data - create without role if not provided
           const userData: any = {
             email: email.toLowerCase(),
@@ -75,7 +83,6 @@ passport.use(
             firstName: profile.name?.givenName || '',
             lastName: profile.name?.familyName || '',
             displayName: profile.displayName || profile.name?.givenName || email.split('@')[0],
-            avatar: profile.photos?.[0]?.value,
             isEmailVerified: true, // Google accounts are pre-verified
             termsAccepted: false, // Will need to be confirmed in UI with role selection
           };
@@ -92,7 +99,7 @@ passport.use(
                 userData.profile = {
                   role: UserRole.BUYER,
                   addresses: [],
-                  avatar: profile.photos?.[0]?.value,
+                  avatar: avatarUrl,
                 };
                 break;
 
@@ -107,7 +114,7 @@ passport.use(
                   salesTaxId: '', // Required - needs to be collected
                   addresses: [],
                   localDelivery: false,
-                  avatar: profile.photos?.[0]?.value,
+                  avatar: avatarUrl,
                 };
                 break;
 
@@ -124,7 +131,7 @@ passport.use(
                     licenceImages: [],
                   },
                   vehicles: [],
-                  avatar: profile.photos?.[0]?.value,
+                  avatar: avatarUrl,
                 };
                 break;
             }
@@ -134,6 +141,7 @@ passport.use(
             userData.role = null; // No role assigned yet
             userData.profile = {
               addresses: [],
+              avatar: avatarUrl,
             };
           }
 
@@ -151,9 +159,17 @@ passport.use(
             needsUpdate = true;
           }
           
-          // Update avatar if not set
-          if (!user.avatar && profile.photos?.[0]?.value) {
-            user.avatar = profile.photos[0].value;
+          // Update avatar in profile if not set
+          if (!(user.profile as any)?.avatar && profile.photos?.[0]?.value) {
+            if (!user.profile) {
+              user.profile = { addresses: [] } as any;
+            }
+            // Process avatar URL to prevent rate limiting
+            let existingUserAvatarUrl = profile.photos[0].value;
+            if (existingUserAvatarUrl) {
+              existingUserAvatarUrl = existingUserAvatarUrl.replace(/s\d+-c/, 's400');
+            }
+            (user.profile as any).avatar = existingUserAvatarUrl;
             needsUpdate = true;
           }
           

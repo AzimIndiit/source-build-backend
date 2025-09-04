@@ -71,6 +71,9 @@ export const completeGoogleSignup = catchAsync(async (req: Request, res: Respons
   // Update user based on role
   user.role = role as UserRole;
 
+  // Get existing avatar from profile if it exists
+  const existingAvatar = (user.profile as any)?.avatar;
+
   // Set role-specific fields
   if (role === 'driver' && 'phone' in validatedData) {
     const driverProfile: any = {
@@ -83,6 +86,7 @@ export const completeGoogleSignup = catchAsync(async (req: Request, res: Respons
       },
       vehicles: [],
       addresses: [],
+      avatar: existingAvatar, // Preserve avatar
     };
     user.profile = driverProfile;
   } else if (role === 'seller' && 'businessName' in validatedData) {
@@ -96,12 +100,14 @@ export const completeGoogleSignup = catchAsync(async (req: Request, res: Respons
       salesTaxId: validatedData.salesTaxId,
       localDelivery: validatedData.localDelivery,
       addresses: [],
+      avatar: existingAvatar, // Preserve avatar
     };
     user.profile = sellerProfile;
   } else if (role === 'buyer') {
     const buyerProfile: any = {
       role: UserRole.BUYER,
       addresses: [],
+      avatar: existingAvatar, // Preserve avatar
     };
     user.profile = buyerProfile;
   }
