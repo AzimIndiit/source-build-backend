@@ -171,13 +171,7 @@ export const driverProfileSchema = new Schema<IDriverProfile>(
         default: false,
       },
     },
-    vehicles: [{
-      make: String,
-      model: String,
-      vehicleImages: [String],
-      insuranceImages: [String],
-      registrationNumber: String,
-    }],
+   
     isVehicles: {
       type: Boolean,
       default: false,
