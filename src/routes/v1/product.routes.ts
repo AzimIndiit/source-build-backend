@@ -49,4 +49,11 @@ router.delete(
   authenticate,
   productController.deleteProduct
 );
+
+router.patch(
+  '/:id/status',
+  authenticate,
+  productController.toggleProductStatus
+);
+
 export default router;

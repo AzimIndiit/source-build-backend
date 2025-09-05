@@ -332,5 +332,39 @@ export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+export const toggleProductStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!Types.ObjectId.isValid(id as string)) {
+    throw ApiError.badRequest('Invalid product ID');
+  }
+
+  if (!status || !['active', 'inactive'].includes(status)) {
+    throw ApiError.badRequest('Invalid status. Must be either "active" or "inactive"');
+  }
+
+  const product = await ProductModal.findById(id);
+
+  if (!product) {
+    throw ApiError.notFound('Product not found');
+  }
+
+  if (product.seller.toString() !== req.user?.id && req.user?.role !== 'admin') {
+    throw ApiError.forbidden('You are not authorized to update this product status');
+  }
+
+  product.status = status === 'active' ? ProductStatus.ACTIVE : ProductStatus.INACTIVE;
+  await product.save();
+
+  await product.populate('seller', 'displayName email avatar');
+
+  return ApiResponse.success(
+    res,
+    product,
+    'Product status updated successfully'
+  );
+});
+
 
 
