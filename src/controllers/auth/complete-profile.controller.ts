@@ -6,6 +6,7 @@ import ApiError from '@/utils/ApiError.js';
 import ApiResponse from '@/utils/ApiResponse.js';
 import catchAsync from '@/utils/catchAsync.js';
 import logger from '@/config/logger.js';
+import { formatUserResponse } from './auth.controller';
 
 /**
  * Validation schemas for completing profile
@@ -166,7 +167,7 @@ export const completeProfile = catchAsync(async (req: Request, res: Response) =>
     });
     
     return ApiResponse.success(res, {
-      user: user.toJSON(),
+      user: formatUserResponse(user.toJSON()),
       profileCompleted: true,
     }, 'Profile completed successfully');
 });

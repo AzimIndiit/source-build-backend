@@ -6,6 +6,7 @@ import ApiResponse from '@utils/ApiResponse.js';
 import UserModel from '@/models/user/user.model.js';
 import { UserRole, UserStatus } from '@/models/user/user.types.js';
 import logger from '@config/logger.js';
+import { formatUserResponse } from './auth.controller';
 
 // Validation schemas for each role
 const buyerSchema = z.object({
@@ -140,19 +141,7 @@ export const completeGoogleSignup = catchAsync(async (req: Request, res: Respons
   return ApiResponse.success(
     res,
     {
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        displayName: user.displayName || '',
-        role: user.role,
-        isVerified: !!user.auth?.emailVerifiedAt,
-        phone: (user.profile as any)?.phone || '',
-        businessName: (user.profile as any)?.businessName,
-        isVehicles: role === 'driver' ? false : undefined,
-        isLicense: role === 'driver' ? false : undefined,
-      },
+      user: formatUserResponse(user.toJSON()),
       tokens,
     },
     'Account setup completed successfully'
