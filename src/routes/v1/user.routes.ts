@@ -91,4 +91,32 @@ router.put('/profile', authenticate, userController.updateProfile);
  */
 router.get('/profile', authenticate, userController.getProfile);
 
+/**
+ * @swagger
+ * /api/v1/user/current-location:
+ *   put:
+ *     summary: Update user's current location
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               locationId:
+ *                 type: string
+ *                 description: ID of the saved address to set as current location
+ *     responses:
+ *       200:
+ *         description: Current location updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       400:
+ *         description: Invalid location ID
+ */
+router.put('/current-location', authenticate, userController.updateCurrentLocation);
+
 export default router;

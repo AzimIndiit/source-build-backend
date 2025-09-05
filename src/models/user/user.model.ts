@@ -123,6 +123,11 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    currentLocationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Address',
+      default: null,
+    },
     profile: {
       type: userProfileSchema,
       required: true,

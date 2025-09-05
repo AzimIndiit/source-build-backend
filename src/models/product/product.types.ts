@@ -55,9 +55,9 @@ export interface IProductLocation {
 }
 
 export interface IDimensions {
-  width?: string;
-  length?: string;
-  height?: string;
+  width?: number;
+  length?: number;
+  height?: number;
   unit?: 'inches' | 'cm' | 'feet' | 'meters';
 }
 

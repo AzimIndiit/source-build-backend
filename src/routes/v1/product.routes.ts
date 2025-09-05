@@ -35,7 +35,13 @@ router.post(
 router.patch(
   '/:id',
   authenticate,
-  productController.updateProduct
+   productController.createProductDraft
+);
+
+router.put(
+  '/:id',
+  authenticate,
+   productController.updateProduct
 );
 
 router.delete(

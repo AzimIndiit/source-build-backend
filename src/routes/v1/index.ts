@@ -13,6 +13,7 @@ import socketTestRoutes from './socket-test.routes.js';
 import userRoutes from './user.routes.js';
 import contactRoutes from './contactus.routes.js'
 import vehicleRoutes from './vehicle.routes.js';
+import cmsRoutes from '../cms.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -47,6 +48,7 @@ router.use('/socket', socketTestRoutes);
 router.use('/user', userRoutes);
 router.use('/contact',contactRoutes)
 router.use('/driver', vehicleRoutes);
+router.use('/cms', cmsRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);

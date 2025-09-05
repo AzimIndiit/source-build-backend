@@ -6,12 +6,24 @@ import {
 } from './user.types.js';
 
 /**
- * Phone number validation helper
+ * Phone number validation helper (accepts formatted or unformatted)
  */
 const phoneValidation = z
   .string()
-  .min(10, 'Phone number must be at least 10 digits')
-  .regex(/^[2-9]\d{2}[2-9]\d{6}$/, 'Invalid phone number format');
+  .min(1, 'Phone number is required')
+  .transform((val) => {
+    // Remove formatting characters to get just digits
+    return val ? val.replace(/\D/g, '') : '';
+  })
+  .refine((val) => {
+    // Must be exactly 10 digits
+    if (val.length !== 10) {
+      return false;
+    }
+    // Check if it's a valid US phone number format
+    // Area code cannot start with 0 or 1
+    return /^[2-9]\d{2}[2-9]\d{6}$/.test(val);
+  }, 'Invalid phone number. Area code cannot start with 0 or 1');
 
 /**
  * Optional phone validation helper
@@ -247,7 +259,16 @@ export const validateRegistrationInput = (input: any) => {
           businessName: z.string().min(2, 'Business name must be at least 2 characters'),
           einNumber: z.string().min(1, 'EIN number is required'),
           salesTaxId: z.string().min(1, 'Sales Tax ID is required'),
-          phone: z.string().min(10, 'Phone number is required for sellers').regex(/^[2-9]\d{2}[2-9]\d{6}$/, 'Invalid phone number format'),
+          phone: z.string()
+            .min(1, 'Phone number is required')
+            .transform((val) => val ? val.replace(/\D/g, '') : '')
+            .refine((val) => val.length === 10 && /^[2-9]\d{2}[2-9]\d{6}$/.test(val), 
+              'Invalid phone number. Area code cannot start with 0 or 1'),
+          cellPhone: z.string()
+            .min(1, 'Cell phone is required')
+            .transform((val) => val ? val.replace(/\D/g, '') : '')
+            .refine((val) => val.length === 10 && /^[2-9]\d{2}[2-9]\d{6}$/.test(val), 
+              'Invalid phone number. Area code cannot start with 0 or 1'),
         });
         
         try {
@@ -269,8 +290,11 @@ export const validateRegistrationInput = (input: any) => {
         
       case 'driver':
         const driverValidation = z.object({
-          phone: z.string().min(10, 'Phone number is required for drivers').regex(/^[2-9]\d{2}[2-9]\d{6}$/, 'Invalid phone number format'),
-
+          phone: z.string()
+            .min(1, 'Phone number is required')
+            .transform((val) => val ? val.replace(/\D/g, '') : '')
+            .refine((val) => val.length === 10 && /^[2-9]\d{2}[2-9]\d{6}$/.test(val), 
+              'Invalid phone number. Area code cannot start with 0 or 1'),
         });
         
         try {

@@ -57,7 +57,7 @@ export const getUserBankAccounts = [
       query.isActive = true;
     }
 
-    const bankAccounts = await BankAccountModal.find(query).sort({ isDefault: -1, createdAt: -1 });
+    const bankAccounts = await BankAccountModal.find(query).sort({createdAt: -1 });
 console.log('bankAccounts', bankAccounts)
     return ApiResponse.success(res, bankAccounts, 'Bank accounts fetched successfully');
   }),

@@ -71,8 +71,9 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
       throw ApiError.unauthorized('Invalid token type');
     }
 
-    // Find user
-    const user = await User.findById(decoded.id);
+    // Find user and populate currentLocation
+    const user = await User.findById(decoded.id)
+      .populate('currentLocationId');
 
     if (!user) {
       throw ApiError.unauthorized('User not found');

@@ -68,9 +68,9 @@ const marketplaceOptionsSchema = z.object({
 });
 
 const dimensionsSchema = z.object({
-  width: z.string().optional(),
-  length: z.string().optional(),
-  height: z.string().optional(),
+  width: z.number().positive().optional(),
+  length: z.number().positive().optional(),
+  height: z.number().positive().optional(),
   unit: z.enum(['inches', 'cm', 'feet', 'meters']).optional().default('inches'),
 }).optional();
 

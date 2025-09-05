@@ -97,16 +97,16 @@ export const marketplaceOptionsSchema = new Schema<IMarketplaceOptions>(
 export const dimensionsSchema = new Schema<IDimensions>(
   {
     width: {
-      type: String,
-      trim: true,
+      type: Number,
+      min: 0,
     },
     length: {
-      type: String,
-      trim: true,
+      type: Number,
+      min: 0,
     },
     height: {
-      type: String,
-      trim: true,
+      type: Number,
+      min: 0,
     },
     unit: {
       type: String,

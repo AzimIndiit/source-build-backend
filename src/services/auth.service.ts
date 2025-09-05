@@ -140,8 +140,10 @@ class AuthService {
     try {
       logger.info('Login attempt', { email: credentials.email });
 
-      // Find user by email
-      const user = await UserModal.findByEmail(credentials.email);
+      // Find user by email with password and populate currentLocation
+      const user = await UserModal.findOne({ email: credentials.email.toLowerCase() })
+        .select('+password')
+        .populate('currentLocationId');
 
       if (!user) {
         throw ApiError.unauthorized('Invalid credentials');

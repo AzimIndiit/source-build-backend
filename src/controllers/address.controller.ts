@@ -128,6 +128,13 @@ export const updateAddress = [
         },
         { $set: { isDefault: false } }
       );
+
+      // Update user's currentLocationId to this address
+      const UserModel = require('@models/user/user.model.js').default;
+      await UserModel.findByIdAndUpdate(
+        req.user?.id,
+        { currentLocationId: addressId }
+      );
     }
 
     Object.assign(address, updateData);
@@ -167,6 +174,20 @@ export const deleteAddress = [
       if (otherAddress) {
         otherAddress.isDefault = true;
         await otherAddress.save();
+        
+        // Update user's currentLocationId to the new default address
+        const UserModel = require('@models/user/user.model.js').default;
+        await UserModel.findByIdAndUpdate(
+          req.user?.id,
+          { currentLocationId: otherAddress._id }
+        );
+      } else {
+        // No other address, clear currentLocationId
+        const UserModel = require('@models/user/user.model.js').default;
+        await UserModel.findByIdAndUpdate(
+          req.user?.id,
+          { $unset: { currentLocationId: 1 } }
+        );
       }
     }
 
@@ -203,8 +224,16 @@ export const setDefaultAddress = [
 
     // Set this address as default
     address.isDefault = true;
-  const resdd=  await address.save();
+    const resdd = await address.save();
     console.log('resdd', resdd)
+
+    // Update user's currentLocationId to this address
+    const UserModel = require('@models/user/user.model.js').default;
+    await UserModel.findByIdAndUpdate(
+      req.user?.id,
+      { currentLocationId: addressId }
+    );
+
     return ApiResponse.success(res, address, 'Default address updated successfully');
   }),
 ];

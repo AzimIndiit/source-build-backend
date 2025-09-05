@@ -69,6 +69,19 @@ const createOtp = async (data: CreateOtpInput): Promise<{ message: string; otpSe
     );
   }
 
+  // Invalidate all existing unverified OTPs for this email and type
+  await OtpModal.updateMany(
+    {
+      email,
+      type,
+      isVerified: false,
+      expiresAt: { $gt: new Date() }, // Only invalidate non-expired OTPs
+    },
+    {
+      isVerified: true, // Mark as verified so they can't be used
+    }
+  );
+
   // Generate and save OTP
   const otpCode = generateOtpCode();
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);

@@ -192,6 +192,7 @@ export interface IUserBase<T extends IUserProfile = IUserProfile> {
   refreshTokens: string[];
   rememberMe?: boolean;
   termsAccepted: boolean;
+  currentLocationId?: string | any;
   auth: IUserAuth;
 }
 
@@ -210,6 +211,7 @@ export interface IUser extends IUserBase<IUserProfile>, Document {
   displayName?: string;
   avatar?: string;
   isOnline?: boolean;
+  currentLocationId?: string | any;
    
   // Instance methods
   comparePassword(candidatePassword: string): Promise<boolean>;

@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { z } from 'zod'
 import authService, { IRegisterData, ILoginCredentials } from '@services/auth.service.js'
-import { IUser, UserRole } from '@/models/user/user.model.js'
+import UserModal, { IUser, UserRole } from '@/models/user/user.model.js'
 import {
   registerUserSchema,
   loginUserSchema,
@@ -39,6 +39,9 @@ export const formatUserResponse = (user: IUser) => {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     avatar: userProfile?.avatar,
+    currentLocationId: user.currentLocationId,
+    currentLocation: (user as any).currentLocation || null, // Include populated location
+    authType:user.authType
   };
 
   // Add role-specific fields based on user role
@@ -436,7 +439,10 @@ export const requestPasswordReset = [
   validate(forgotPasswordSchema),
   catchAsync(async (req: Request, res: Response) => {
     const { email } = req.body
-
+    const  isUserExists = await UserModal.findOne({ email })
+ if(!isUserExists){
+  return ApiResponse.success(res,null,"If an account with this email exists, you’ll receive a password reset link.",200)
+ }
     const resetToken = await authService.generatePasswordResetToken(email)
 
     // In a real application, you would send this token via email

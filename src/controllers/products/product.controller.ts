@@ -10,6 +10,17 @@ import { getProductsSchema, getProductBySlugSchema, createProductSchema, createP
 
 export const createProductDraft = [validate(createProductDraftSchema), catchAsync(async (req: Request, res: Response) => {
   const productData = req.body;
+  const  productId = req.params.id;
+  if(productId){
+    const product = await ProductModal.findById(productId);
+    if(!product){
+      throw ApiError.notFound('Product not found');
+    }
+    Object.assign(product, productData);
+    product.status=  ProductStatus.DRAFT;
+    await product.save();
+    return ApiResponse.success(res, product, 'Product draft updated successfully');
+  }else {
   const product = await ProductModal.create({
     ...productData,
     seller: req.user?.id,
@@ -18,7 +29,7 @@ export const createProductDraft = [validate(createProductDraftSchema), catchAsyn
 
   await product.populate('seller', 'displayName email avatar');
 
-  return ApiResponse.created(res, product, 'Product draft created successfully');
+  return ApiResponse.created(res, product, 'Product draft created successfully');}
 })];
 
 export const createProduct = [validate(createProductSchema), catchAsync(async (req: Request, res: Response) => {
@@ -176,7 +187,7 @@ export const getProducts = [validate(getProductsSchema, 'query'),catchAsync(asyn
   if (query['pricing'] === 'low-to-high') sortOptions = { price: 1 };
 
   // ✅ Fetch products and available locations
-  const [products, total, locationIds] = await Promise.all([
+  const [products, total] = await Promise.all([
     ProductModal.find(filter)
       .populate('seller', 'displayName email avatar')
       .populate('locationIds')
@@ -185,10 +196,14 @@ export const getProducts = [validate(getProductsSchema, 'query'),catchAsync(asyn
       .limit(limit)
       .lean(),
     ProductModal.countDocuments(filter),
-    ProductModal.distinct('locationIds'),
   ]);
 
-  // Populate the location details
+  // Get location IDs from the filtered products
+  const locationIds = [...new Set(products.flatMap(product => 
+    product.locationIds?.map(loc => loc._id?.toString()) || []
+  ))].filter(Boolean);
+
+  // Populate the location details based on user's available products
   const Address = (await import('../../models/address/address.model.js')).default;
   const availableLocations = await Address.find({ _id: { $in: locationIds } })
     .select('city state country displayName')
