@@ -13,7 +13,7 @@ import socketTestRoutes from './socket-test.routes.js';
 import userRoutes from './user.routes.js';
 import contactRoutes from './contactus.routes.js'
 import vehicleRoutes from './vehicle.routes.js';
-import cmsRoutes from '../cms.routes.js';
+import cmsRoutes from './cms.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 

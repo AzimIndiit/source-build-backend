@@ -5,6 +5,7 @@ import catchAsync from '@utils/catchAsync.js';
 import ApiResponse from '@utils/ApiResponse.js';
 import ApiError from '@utils/ApiError.js';
 import AddressModel from '@models/address/address.model.js';
+import UserModel from '@models/user/user.model.js';
 import {
   createAddressSchema,
   updateAddressSchema,
@@ -130,7 +131,6 @@ export const updateAddress = [
       );
 
       // Update user's currentLocationId to this address
-      const UserModel = require('@models/user/user.model.js').default;
       await UserModel.findByIdAndUpdate(
         req.user?.id,
         { currentLocationId: addressId }

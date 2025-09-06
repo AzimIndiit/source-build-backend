@@ -138,6 +138,7 @@ export const register = [
     const { role } = req.body
     // Enhanced validation with better error messages
     try {
+      console.log('req.body', req.body)
       const validated = await registerUserSchema.parseAsync(req.body)
       req.body = validated
     } catch (error) {
@@ -177,7 +178,7 @@ export const register = [
               } else if (!req.body.einNumber) {
                 message = 'EIN number is required for seller registration'
                 field = 'einNumber'
-              } else if (!req.body.salesTaxId) {
+              } else if (req.body.localDelivery===false && !req.body.salesTaxId) {
                 message = 'Sales Tax ID is required for seller registration'
                 field = 'salesTaxId'
               } else if (!req.body.phone) {

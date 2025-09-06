@@ -185,13 +185,25 @@ const sellerRegistrationSchema = baseRegistrationSchema.extend({
   cellPhone: optionalPhoneValidation,
   businessName: z.string().min(2, 'Business name must be at least 2 characters'),
   einNumber: z.string().min(1, 'EIN number is required'),
-  salesTaxId: z.string().min(1, 'Sales Tax ID is required'),
+  salesTaxId: z.string().optional(),
   businessAddress: z.string().optional(),
-  localDelivery: z.boolean().optional().default(false),
+  localDelivery: z.boolean().optional()
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
-});
+}).refine(
+  (data) => {
+    // salesTaxId is required only when localDelivery is 'no'
+    if (data.localDelivery === 'no' || data.localDelivery === false) {
+      return data.salesTaxId && data.salesTaxId.length > 0;
+    }
+    return true;
+  },
+  {
+    message: 'Sales Tax ID is required when Local Delivery is No',
+    path: ['salesTaxId'],
+  }
+);
 
 /**
  * Driver registration schema
@@ -258,7 +270,7 @@ export const validateRegistrationInput = (input: any) => {
         const sellerValidation = z.object({
           businessName: z.string().min(2, 'Business name must be at least 2 characters'),
           einNumber: z.string().min(1, 'EIN number is required'),
-          salesTaxId: z.string().min(1, 'Sales Tax ID is required'),
+          salesTaxId: z.string().optional(),
           phone: z.string()
             .min(1, 'Phone number is required')
             .transform((val) => val ? val.replace(/\D/g, '') : '')

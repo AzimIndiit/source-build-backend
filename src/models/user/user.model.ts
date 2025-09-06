@@ -229,13 +229,14 @@ userSchema.pre<IUser>('save', async function (next) {
   // Validate role-specific required fields
   if (this.role === UserRole.SELLER) {
     const sellerProfile = this.profile as any
+    console.log('sellerProfile', sellerProfile)
     if (!sellerProfile?.businessName) {
       return next(new Error('Business name is required for sellers'))
     }
     if (!sellerProfile?.einNumber) {
       return next(new Error('EIN number is required for sellers'))
     }
-    if (!sellerProfile?.salesTaxId) {
+    if (sellerProfile?.localDelivery==='no' && !sellerProfile?.salesTaxId) {
       return next(new Error('Sales tax ID is required for sellers'))
     }
   }

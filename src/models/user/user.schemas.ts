@@ -118,7 +118,6 @@ export const sellerProfileSchema = new Schema<ISellerProfile>(
     },
     salesTaxId: {
       type: String,
-      required: [true, 'Sales tax ID is required for sellers'],
     },
     businessAddress: {
       type: String,
