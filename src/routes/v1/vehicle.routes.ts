@@ -7,6 +7,7 @@ import {
   updateVehicleSchema,
   getVehiclesQuerySchema,
   vehicleIdParamSchema,
+  createLicenseSchema,
 } from '@models/vehicle/vehicle.validators.js';
 import {
   createOrUpdateVehicle,
@@ -15,6 +16,7 @@ import {
   updateVehicle,
   deleteVehicle,
   restoreVehicle,
+  createOrUpdateLicense,
 } from '@controllers/vehicle/vehicle.controller.js';
 
 const router = Router();
@@ -25,6 +27,7 @@ router.use(authorize(UserRole.DRIVER));
 
 // Vehicle routes with validation
 router.post('/vehicles', validate(createVehicleSchema, 'body'), createOrUpdateVehicle);
+router.post('/license', validate(createLicenseSchema, 'body'), createOrUpdateLicense);
 router.get('/vehicles', validate(getVehiclesQuerySchema, 'query'), getDriverVehicles);
 router.get('/vehicles/:id', validate(vehicleIdParamSchema, 'params'), getVehicleById);
 router.put('/vehicles/:id', 

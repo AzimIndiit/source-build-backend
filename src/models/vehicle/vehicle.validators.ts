@@ -84,6 +84,25 @@ export const createVehicleSchema = baseVehicleSchema.extend({
     .default([]),
 });
 
+
+// Create vehicle schema
+export const createLicenseSchema = z.object({
+  licenseImages: z
+    .array(z.string().url('Invalid image URL'))
+    .min(1, 'At least one license image is required')
+    .max(2, 'Maximum 2 license images allowed')
+    .refine(
+      (images) => images.every((img) => img.startsWith('http') || img.startsWith('/')),
+      'All license images must be valid URLs or paths'
+    ),
+    licenseNumber: z
+    .string()
+    .min(1, 'License number is required')
+    .max(20, 'License number must not exceed 20 characters')
+    // .regex(/^[A-Z0-9-]+$/i, 'Invalid license number format')
+
+});
+
 // Update vehicle schema (all fields optional except ID)
 export const updateVehicleSchema = z.object({
   vehicleType: z

@@ -82,6 +82,56 @@ export const createOrUpdateVehicle = catchAsync(async (req: Request, res: Respon
 })
 
 /**
+ * Create or update vehicle for a driver
+ */
+export const createOrUpdateLicense = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id
+
+  if (!userId) {
+    throw ApiError.badRequest('User not authenticated')
+  }
+
+  // Check if user is a driver
+  const user = await UserModal.findById(userId)
+  if (!user || user.role !== 'driver') {
+    throw ApiError.badRequest('Only drivers can add license')
+  }
+
+  const { licenseNumber, licenseImages } = req.body
+
+  // Validate required fields
+  if (!licenseNumber || !licenseImages) {
+    throw ApiError.badRequest('Missing required vehicle information')
+  }
+    // Create new license
+    console.log('userId-sss', userId,licenseNumber,licenseImages)
+    const license = await UserModal.findOneAndUpdate(
+      { _id:userId }, // This should be the filter
+      {
+        $set: { // This should be the update
+         'profile.driverLicense': {
+            number: licenseNumber,
+            licenceImages: licenseImages,
+            verified: false,
+          }
+        }
+      },
+      { new: true, runValidators: true }
+    )
+  
+      console.log('license', license)
+
+    // Update user's isLicense flag
+    if (user.profile && 'isLicense' in user.profile) {
+      ;(user.profile as any).isLicense = true
+      await user.save()
+    }
+  
+
+  return ApiResponse.success(res, license, 'License information saved successfully', 201)
+})
+
+/**
  * Get all vehicles for a driver
  */
 export const getDriverVehicles = catchAsync(async (req: Request, res: Response) => {
