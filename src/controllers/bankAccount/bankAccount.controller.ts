@@ -122,11 +122,14 @@ export const deleteBankAccount = [
       throw ApiError.notFound('Bank account not found');
     }
 
-    // Soft delete the account
-    await bankAccount.softDelete();
+    // Check if this was the default account before deletion
+    const wasDefault = bankAccount.isDefault;
+
+    // Permanently delete the account
+    await BankAccountModal.deleteOne({ _id: accountId });
 
     // If this was the default account, set another as default
-    if (bankAccount.isDefault) {
+    if (wasDefault) {
       const otherAccount = await BankAccountModal.findOne({
         user: userId,
         isActive: true,
@@ -134,7 +137,15 @@ export const deleteBankAccount = [
       }).sort({ createdAt: -1 });
 
       if (otherAccount) {
-        await otherAccount.setAsDefault();
+        // Unset all other defaults for this user first
+        await BankAccountModal.updateMany(
+          { user: userId, _id: { $ne: otherAccount._id } },
+          { $set: { isDefault: false } }
+        );
+        
+        // Set the selected account as default
+        otherAccount.isDefault = true;
+        await otherAccount.save();
       }
     }
 

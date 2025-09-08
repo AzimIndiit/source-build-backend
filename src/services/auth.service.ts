@@ -4,6 +4,7 @@ import config from '@config/index.js';
 import ApiError from '@utils/ApiError.js';
 import logger from '@config/logger.js';
 import emailService from './email.service.js';
+import { formatUserResponse } from '@/controllers/auth/auth.controller.js';
 
 /**
  * Interface for login credentials
@@ -156,6 +157,11 @@ class AuthService {
         throw ApiError.forbidden('Account is suspended or inactive');
       }
 
+         // Check if account is active
+         if (user.isEmailVerified !== true) {
+          throw ApiError.forbidden('Account is not verified');
+        }
+
       // Verify password
       const isPasswordValid = await user.comparePassword(credentials.password);
 
@@ -179,10 +185,10 @@ class AuthService {
         await user.save();
       }
 
-      logger.info('User logged in successfully', { userId: user._id, email: user.email });
+      logger.info('User logged in successfully',user, { userId: user._id, email: user.email });
 
       return {
-        user,
+        user:formatUserResponse(user),
         tokens,
       };
     } catch (error) {

@@ -176,14 +176,13 @@ export const deleteAddress = [
         await otherAddress.save();
         
         // Update user's currentLocationId to the new default address
-        const UserModel = require('@models/user/user.model.js').default;
         await UserModel.findByIdAndUpdate(
           req.user?.id,
           { currentLocationId: otherAddress._id }
         );
       } else {
         // No other address, clear currentLocationId
-        const UserModel = require('@models/user/user.model.js').default;
+       
         await UserModel.findByIdAndUpdate(
           req.user?.id,
           { $unset: { currentLocationId: 1 } }

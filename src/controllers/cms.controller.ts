@@ -114,9 +114,9 @@ export const getAllCmsContent = catchAsync(async (req: Request, res: Response) =
   }
 
   // Only sellers can get their CMS content
-  if (user.role !== 'seller') {
-    throw ApiError.forbidden('Only sellers can access this endpoint');
-  }
+  // if (user.role !== 'seller') {
+  //   throw ApiError.forbidden('Only sellers can access this endpoint');
+  // }
 
   const contents = await CmsContent.find({ userId });
 

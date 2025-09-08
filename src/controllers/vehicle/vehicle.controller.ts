@@ -72,10 +72,11 @@ export const createOrUpdateVehicle = catchAsync(async (req: Request, res: Respon
     })
 
     // Update user's isVehicles flag
-    if (user.profile && 'isVehicles' in user.profile) {
-      ;(user.profile as any).isVehicles = true
-      await user.save()
-    }
+    await UserModal.findByIdAndUpdate(
+      userId,
+      { $set: { 'profile.isVehicles': true } },
+      { new: true }
+    )
   }
 
   return ApiResponse.success(res, vehicle, 'Vehicle information saved successfully', 201)
@@ -103,30 +104,31 @@ export const createOrUpdateLicense = catchAsync(async (req: Request, res: Respon
   if (!licenseNumber || !licenseImages) {
     throw ApiError.badRequest('Missing required vehicle information')
   }
-    // Create new license
-    console.log('userId-sss', userId,licenseNumber,licenseImages)
-    const license = await UserModal.findOneAndUpdate(
-      { _id:userId }, // This should be the filter
-      {
-        $set: { // This should be the update
-         'profile.driverLicense': {
-            number: licenseNumber,
-            licenceImages: licenseImages,
-            verified: false,
-          }
-        }
+  // Create new license
+  console.log('userId-sss', userId, licenseNumber, licenseImages)
+  const license = await UserMol.findOneAndUpdate(
+    { _id: userId }, // This should be the filter
+    {
+      $set: {
+        // This should be the update
+        'profile.driverLicense': {
+          number: licenseNumber,
+          licenceImages: licenseImages,
+          verified: false,
+        },
       },
-      { new: true, runValidators: true }
-    )
-  
-      console.log('license', license)
+    },
+    { new: true, runValidators: true }
+  )
 
-    // Update user's isLicense flag
-    if (user.profile && 'isLicense' in user.profile) {
-      ;(user.profile as any).isLicense = true
-      await user.save()
-    }
-  
+  console.log('license', license)
+
+  // Update user's isLicense flag
+  await UserModal.findByIdAndUpdate(
+    userId,
+    { $set: { 'profile.isLicense': true } },
+    { new: true }
+  )
 
   return ApiResponse.success(res, license, 'License information saved successfully', 201)
 })

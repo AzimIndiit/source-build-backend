@@ -42,6 +42,12 @@ const discountSchema = z.object({
     }
   );
 
+// More lenient discount schema for drafts - allows incomplete discount data
+const draftDiscountSchema = z.object({
+  discountType: z.nativeEnum(DiscountType).optional(),
+  discountValue: z.number().optional(),
+}).optional();
+
 const variantSchema = z.object({
   color: z
     .string()
@@ -58,6 +64,15 @@ const variantSchema = z.object({
     .positive('Price must be greater than 0')
     .max(999999.99, 'Price must not exceed 999,999.99'),
   discount: discountSchema.optional(),
+  images: z.array(z.string()).optional(),
+});
+
+// More lenient variant schema for drafts
+const draftVariantSchema = z.object({
+  color: z.string().optional(),
+  quantity: z.number().optional(),
+  price: z.number().optional(),
+  discount: draftDiscountSchema,
   images: z.array(z.string()).optional(),
 });
 
@@ -95,24 +110,27 @@ export const createProductDraftSchema = z.object({
       .max(100, 'Title must not exceed 100 characters'),
     images: z
       .array(z.string())
-      .min(1, 'At least one image is required'),
+      .min(2, 'At least 2 images are required'),
     status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.DRAFT),
-    price: z.number().optional(),
+    price: z.number().positive('Price must be greater than 0'),
+    category: z
+      .string()
+      .trim()
+      .min(1, 'Category is required'),
     description: z.string().optional(),
-    category: z.string().optional(),
     subCategory: z.string().optional(),
     quantity: z.number().optional(),
     brand: z.string().optional(),
     color: z.string().optional(),
     locationIds: z.array(z.string()).optional(),
     productTag: z.array(z.string()).optional(),
-    variants: z.array(variantSchema).optional(),
+    variants: z.array(draftVariantSchema).optional(),
     marketplaceOptions: marketplaceOptionsSchema.optional(),
     pickupHours: pickupHoursSchema,
     shippingPrice: z.number().optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
-    discount: discountSchema.optional(),
+    discount: draftDiscountSchema,
     dimensions: dimensionsSchema,
     availabilityRadius: z.number().optional(),
 });

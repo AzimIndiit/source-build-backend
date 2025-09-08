@@ -64,7 +64,7 @@ export const formatUserResponse = (user: IUser) => {
     case UserRole.DRIVER:
       return {
         ...baseResponse,
-        phone: userProfile.phone,
+        phone: userProfile?.phone,
         address: userProfile?.address,
         isVehicles: userProfile?.isVehicles ,
         isLicense:userProfile?.isLicense,
@@ -362,6 +362,7 @@ export const login = [
       
   
    const userResponse = formatUserResponse(user)
+   console.log('userResponse',user, userResponse)
     return ApiResponse.success(
       res,
       {
