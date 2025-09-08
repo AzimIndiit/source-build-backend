@@ -73,11 +73,11 @@ export async function updateStock(
   
   product.quantity = quantity;
   
-  if (quantity === 0) {
-    product.status = ProductStatus.OUT_OF_STOCK;
-  } else if (product.status === ProductStatus.OUT_OF_STOCK) {
-    product.status = ProductStatus.ACTIVE;
-  }
+  // if (quantity === 0) {
+  //   product.status = ProductStatus.OUT_OF_STOCK;
+  // } else if (product.status === ProductStatus.OUT_OF_STOCK) {
+  //   product.status = ProductStatus.ACTIVE;
+  // }
   
   await product.save();
   return product;

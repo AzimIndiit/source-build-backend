@@ -266,13 +266,13 @@ productSchema.pre('save', function(next) {
   }
 
   // Auto-update status based on quantity
-  if (this.isModified('quantity')) {
-    if (this.quantity === 0) {
-      this.status = ProductStatus.OUT_OF_STOCK;
-    } else if (this.status === ProductStatus.OUT_OF_STOCK && this.quantity > 0) {
-      this.status = ProductStatus.ACTIVE;
-    }
-  }
+  // if (this.isModified('quantity')) {
+  //   if (this.quantity === 0) {
+  //     this.status = ProductStatus.OUT_OF_STOCK;
+  //   } else if (this.status === ProductStatus.OUT_OF_STOCK && this.quantity > 0) {
+  //     this.status = ProductStatus.ACTIVE;
+  //   }
+  // }
 
   // Validate marketplace options
   if (this.marketplaceOptions?.pickup && !this.pickupHours) {

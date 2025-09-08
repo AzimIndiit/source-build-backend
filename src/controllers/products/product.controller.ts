@@ -366,5 +366,49 @@ export const toggleProductStatus = catchAsync(async (req: Request, res: Response
   );
 });
 
+export const updateProductStock = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { quantity, variants } = req.body;
+
+  if (!Types.ObjectId.isValid(id as string)) {
+    throw ApiError.badRequest('Invalid product ID');
+  }
+
+  const product = await ProductModal.findById(id);
+
+  if (!product) {
+    throw ApiError.notFound('Product not found');
+  }
+
+  if (product.seller.toString() !== req.user?.id && req.user?.role !== 'admin') {
+    throw ApiError.forbidden('You are not authorized to update this product stock');
+  }
+
+  // Update main product quantity
+  if (quantity !== undefined && quantity !== null) {
+    product.quantity = quantity;
+    
+  
+  }
+
+  // Update variant quantities if provided
+  if (variants && Array.isArray(variants) && product.variants) {
+    variants.forEach((variantUpdate: { index: number; quantity: number }) => {
+      if (product.variants && product.variants[variantUpdate.index]) {
+        product.variants[variantUpdate.index].quantity = variantUpdate.quantity;
+      }
+    });
+  }
+
+  await product.save();
+  await product.populate('seller', 'displayName email avatar');
+
+  return ApiResponse.success(
+    res,
+    product,
+    'Product stock updated successfully'
+  );
+});
+
 
 

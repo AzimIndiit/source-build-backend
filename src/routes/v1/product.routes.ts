@@ -56,4 +56,10 @@ router.patch(
   productController.toggleProductStatus
 );
 
+router.patch(
+  '/:id/stock',
+  authenticate,
+  productController.updateProductStock
+);
+
 export default router;
