@@ -117,20 +117,20 @@ const productSchema = new Schema<IProduct, IProductModel>(
     },
     pickupHours: {
       type: Schema.Types.Mixed,  // Can be string or object
-      validate: {
-        validator: function(value: any) {
-          // Allow string or object
-          if (typeof value === 'string') {
-            return value.length <= 100;
-          }
-          if (typeof value === 'object' && value !== null) {
-            // Validate object structure if needed
-            return true;
-          }
-          return true;
-        },
-        message: 'Invalid pickup hours format',
-      },
+      // validate: {
+      //   validator: function(value: any) {
+      //     // Allow string or object
+      //     // if (typeof value === 'string') {
+      //     //   return value.length <= 100;
+      //     // }
+      //     if (typeof value === 'object' && value !== null) {
+      //       // Validate object structure if needed
+      //       return true;
+      //     }
+      //     return true;
+      //   },
+      //   message: 'Invalid pickup hours format',
+      // },
     },
     shippingPrice: {
       type: Number,

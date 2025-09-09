@@ -57,7 +57,7 @@ const variantSchema = z.object({
   quantity: z
     .number()
     .int()
-    .min(1, 'Quantity must be at least 1')
+    .min(0, 'Quantity must be at least 0')
     .max(99999, 'Quantity must not exceed 99,999'),
   price: z
     .number()
@@ -90,7 +90,7 @@ const dimensionsSchema = z.object({
 }).optional();
 
 const pickupHoursSchema = z.union([
-  z.string().max(100, 'Pickup hours must not exceed 100 characters'),
+  z.string(),
   z.object({
     monday: z.object({ open: z.string(), close: z.string() }).optional(),
     tuesday: z.object({ open: z.string(), close: z.string() }).optional(),

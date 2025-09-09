@@ -6,6 +6,7 @@ import ApiResponse from '@utils/ApiResponse.js';
 import ApiError from '@utils/ApiError.js';
 import AddressModel from '@models/address/address.model.js';
 import UserModel from '@models/user/user.model.js';
+import ProductModel from '@models/product/product.model.js';
 import {
   createAddressSchema,
   updateAddressSchema,
@@ -147,7 +148,7 @@ export const updateAddress = [
 export const deleteAddress = [
   validate(deleteAddressSchema.shape.params, 'params'),
   catchAsync(async (req: Request, res: Response) => {
-       const userId = new Types.ObjectId(req.user?.id);
+    const userId = new Types.ObjectId(req.user?.id);
     const addressId = new Types.ObjectId(req.params['id']);
 
     const address = await AddressModel.findOne({
@@ -160,7 +161,20 @@ export const deleteAddress = [
       throw ApiError.notFound('Address not found');
     }
 
-   await AddressModel.deleteOne({_id: addressId, userId: userId, isActive: true});
+    // Check if any products are using this address
+    const productsCount = await ProductModel.countDocuments({
+      locationIds: { $in: [addressId] },
+      status: { $ne: 'inactive' } // Check for any non-inactive products
+    });
+
+    if (productsCount > 0) {
+      console.log(`Found ${productsCount} product(s) using address:`, addressId.toString());
+      throw ApiError.badRequest(
+        `Cannot delete this address as it is associated with ${productsCount} product(s). Please update or remove the products first.`
+      );
+    }
+
+    await AddressModel.deleteOne({_id: addressId, userId: userId, isActive: true});
   
     // If this was the default address, set another as default
     if (address.isDefault) {
