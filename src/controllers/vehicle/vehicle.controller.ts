@@ -106,7 +106,7 @@ export const createOrUpdateLicense = catchAsync(async (req: Request, res: Respon
   }
   // Create new license
   console.log('userId-sss', userId, licenseNumber, licenseImages)
-  const license = await UserMol.findOneAndUpdate(
+  const license = await UserModal.findOneAndUpdate(
     { _id: userId }, // This should be the filter
     {
       $set: {
