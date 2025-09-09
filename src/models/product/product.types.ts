@@ -29,6 +29,7 @@ export interface IDiscount {
 export interface IVariant {
   color: string;
   quantity: number;
+  outOfStock: boolean;
   price: number;
   discount?: IDiscount;
   images?: string[];
@@ -79,6 +80,7 @@ export interface IProductBase {
   category: string;
   subCategory: string;
   quantity: number;
+  outOfStock: boolean;
   brand: string;
   color: string;
   locationIds: Types.ObjectId[];  // Changed from locations to locationIds (references to SavedAddress)
@@ -142,6 +144,7 @@ export interface CreateProductDTO {
   category: string;
   subCategory: string;
   quantity: number;
+  outOfStock: boolean;
   brand: string;
   color: string;
   locationIds: string[];  // Array of SavedAddress IDs
@@ -167,11 +170,12 @@ export interface UpdateProductDTO {
   category?: string;
   subCategory?: string;
   quantity?: number;
+  outOfStock?: boolean;
   brand?: string;
   color?: string;
   locationIds?: string[];  // Array of SavedAddress IDs
   productTag?: string[];
-  variants?: IVariant[];
+  variants?: IVariant[]; 
   marketplaceOptions?: IMarketplaceOptions;
   pickupHours?: IPickupHours | string;
   shippingPrice?: number;
@@ -189,6 +193,7 @@ export interface ProductFilterDTO {
   subCategory?: string;
   minPrice?: number;
   maxPrice?: number;
+  outOfStock?: boolean;
   brand?: string;
   color?: string;
   tags?: string[];

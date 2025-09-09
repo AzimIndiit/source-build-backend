@@ -58,6 +58,10 @@ export const variantSchema = new Schema<IVariant>(
         message: 'Quantity must be an integer',
       },
     },
+    outOfStock: {
+      type: Boolean,
+      default: false,
+    },
     price: {
       type: Number,
       required: true,

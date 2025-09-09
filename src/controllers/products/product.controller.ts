@@ -11,6 +11,7 @@ import { getProductsSchema, getProductBySlugSchema, createProductSchema, createP
 export const createProductDraft = [validate(createProductDraftSchema), catchAsync(async (req: Request, res: Response) => {
   const productData = req.body;
   const  productId = req.params.id;
+  console.log('productData', productData)
   if(productId){
     const product = await ProductModal.findById(productId);
     if(!product){
@@ -368,7 +369,7 @@ export const toggleProductStatus = catchAsync(async (req: Request, res: Response
 
 export const updateProductStock = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { quantity, variants } = req.body;
+  const { quantity, variants , outOfStock } = req.body;
 
   if (!Types.ObjectId.isValid(id as string)) {
     throw ApiError.badRequest('Invalid product ID');
@@ -387,14 +388,19 @@ export const updateProductStock = catchAsync(async (req: Request, res: Response)
   // Update main product quantity
   if (quantity !== undefined && quantity !== null) {
     product.quantity = quantity;
-    
+       
   
+  }
+
+  if(outOfStock !== undefined && outOfStock !== null) {
+    product.outOfStock = outOfStock;
   }
 
   // Update variant quantities if provided
   if (variants && Array.isArray(variants) && product.variants) {
-    variants.forEach((variantUpdate: { index: number; quantity: number }) => {
+    variants.forEach((variantUpdate: { index: number; quantity: number; outOfStock: boolean }) => {
       if (product.variants && product.variants[variantUpdate.index]) {
+        product.variants[variantUpdate.index].outOfStock = variantUpdate.outOfStock;
         product.variants[variantUpdate.index].quantity = variantUpdate.quantity;
       }
     });

@@ -59,6 +59,7 @@ const variantSchema = z.object({
     .int()
     .min(0, 'Quantity must be at least 0')
     .max(99999, 'Quantity must not exceed 99,999'),
+
   price: z
     .number()
     .positive('Price must be greater than 0')
@@ -71,6 +72,7 @@ const variantSchema = z.object({
 const draftVariantSchema = z.object({
   color: z.string().optional(),
   quantity: z.number().optional(),
+  outOfStock: z.boolean().optional(),
   price: z.number().optional(),
   discount: draftDiscountSchema,
   images: z.array(z.string()).optional(),
@@ -120,6 +122,7 @@ export const createProductDraftSchema = z.object({
     description: z.string().optional(),
     subCategory: z.string().optional(),
     quantity: z.number().optional(),
+    outOfStock: z.boolean().optional(),
     brand: z.string().optional(),
     color: z.string().optional(),
     locationIds: z.array(z.string()).optional(),
@@ -164,8 +167,9 @@ export const createProductSchema = z.object({
     quantity: z
       .number()
       .int()
-      .min(1, 'Quantity must be at least 1')
+      .min(0, 'Quantity must be at least 0')
       .max(99999, 'Quantity must not exceed 99,999'),
+    outOfStock: z.boolean().optional(),
     brand: z
       .string()
       .trim()
@@ -297,6 +301,7 @@ export const updateProductSchema = z.object({
       .min(0, 'Quantity must be at least 0')
       .max(99999, 'Quantity must not exceed 99,999')
       .optional(),
+    outOfStock: z.boolean().optional(),
     brand: z
       .string()
       .trim()
@@ -313,7 +318,7 @@ export const updateProductSchema = z.object({
       .min(1, 'Color is required')
       .regex(
         /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
-        'Please enter a valid HEX color code (e.g., #FF0000)'
+        'Please enter a valid HEX colour codee (e.g., #FF0000)'
       )
       .optional(),
     locationIds: z

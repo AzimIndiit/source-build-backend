@@ -76,6 +76,10 @@ const productSchema = new Schema<IProduct, IProductModel>(
         message: 'Quantity must be an integer',
       },
     },
+    outOfStock: {
+      type: Boolean,
+      default: false,
+    },
     brand: {
       type: String,
       trim: true,
