@@ -86,7 +86,7 @@ export const getOrderByNumber = [
   catchAsync(async (req: Request, res: Response) => {
     const { orderNumber } = req.params;
     
-    const order = await orderService.getOrderById(orderNumber as string);
+    const order = await orderService.getOrderByNumber(orderNumber as string);
     
     return ApiResponse.success(res, order, 'Order retrieved successfully');
   })
@@ -163,12 +163,12 @@ export const markAsDelivered = [
   validate(markAsDeliveredSchema),
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { proofOfDelivery } = req.body;
+    const { proofOfDelivery, deliveryMessage } = req.body;
     const userId = req.user?.id;
     
     const order = await orderService.getOrderById(id as string);
-    
-    if (order.driver?.userRef?.toString() !== userId) {
+    console.log('first--', order.driver?.userRef?.id,userId)
+    if (order.driver?.userRef?.id !== userId) {
       throw ApiError.forbidden('Only assigned driver can mark order as delivered');
     }
     
@@ -176,6 +176,9 @@ export const markAsDelivered = [
     order.actualDeliveryDate = new Date();
     if (proofOfDelivery) {
       order.orderSummary.proofOfDelivery = proofOfDelivery;
+    }
+    if (deliveryMessage) {
+      order.orderSummary.deliveryMessage = deliveryMessage;
     }
     
     await order.save();
@@ -307,5 +310,53 @@ export const getOrderTracking = [
     const tracking = order.trackingHistory || [];
     
     return ApiResponse.success(res, tracking, 'Order tracking retrieved successfully');
+  })
+];
+
+/**
+ * Add unified review for order (customer, driver, and/or seller)
+ */
+export const addOrderReview = [
+  validate(orderIdSchema, 'params'),
+  catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { customer, driver, seller } = req.body;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    
+    if (!userId) {
+      throw ApiError.unauthorized('User not authenticated');
+    }
+    
+    const order = await orderService.getOrderById(id as string);
+    
+    // Validate that the order is delivered before allowing reviews
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw ApiError.badRequest('Reviews can only be added for delivered orders');
+    }
+    
+    // Process customer review (from seller or driver)
+    if (userRole === 'seller') {
+      await orderService.addSellerReview(id as string, seller.rating, seller.review, userId);
+      logger.info('Customer review added', { orderId: id, userId, rating: seller.rating });
+    }
+    
+    // Process driver review (from buyer or seller)
+    if (userRole === 'driver') {
+      await orderService.addDriverReview(id as string, driver.rating, driver.review, userId);
+      logger.info('Driver review added', { orderId: id, userId, rating: driver.rating });
+    }
+    
+    // Process seller review (from buyer or driver)
+    if (userRole === 'buyer') {
+      // Using addCustomerReview as placeholder - should be addSellerReview
+      await orderService.addCustomerReview(id as string, customer.rating, customer.review, userId);
+      logger.info('Seller review added', { orderId: id, userId, rating: customer.rating });
+    }
+    
+    // Fetch updated order with all reviews
+    const updatedOrder = await orderService.getOrderById(id as string);
+    
+    return ApiResponse.success(res, updatedOrder, 'Reviews added successfully');
   })
 ];

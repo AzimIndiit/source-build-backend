@@ -56,6 +56,7 @@ export const createOrderSchema = z.object({
     orderNumber: z.string().optional(),
     customer: InfoSchema,
     driver: InfoSchema.optional(),
+    seller: InfoSchema,
     products: z.array(OrderProductSchema).min(1, 'At least one product is required'),
     date: z.string().optional(),
     amount: z.number().min(0).optional(),
@@ -87,6 +88,7 @@ export const assignDriverSchema = z.object({
 
 export const markAsDeliveredSchema = z.object({
     proofOfDelivery: z.string().url('Invalid proof of delivery URL').optional(),
+    deliveryMessage: z.string().max(500, 'Delivery message is too long').optional(),
 });
 
 export const cancelOrderSchema = z.object({
@@ -108,6 +110,7 @@ export const orderFilterSchema = z.object({
     status: z.nativeEnum(OrderStatus).optional(),
     customer: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
     driver: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+    seller: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     minAmount: z.string().transform(Number).optional(),

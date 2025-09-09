@@ -14,11 +14,51 @@ import {
   initiateRefund,
   addCustomerReview,
   addDriverReview,
+  addOrderReview,
   getOrderStats,
   getOrderTracking,
 } from '@controllers/orders/order.controller.js';
 
 const router = Router();
+
+// Seller-specific routes (define before :id routes)
+/**
+ * @route   GET /api/v1/orders/seller/orders
+ * @desc    Get all orders for a seller
+ * @access  Private (Seller)
+ */
+router.get(
+  '/seller/orders',
+  authenticate,
+  authorize(UserRole.SELLER),
+  getOrders
+);
+
+// Driver-specific routes (define before :id routes)
+/**
+ * @route   GET /api/v1/orders/driver/deliveries
+ * @desc    Get all deliveries for a driver
+ * @access  Private (Driver)
+ */
+router.get(
+  '/driver/deliveries',
+  authenticate,
+  authorize(UserRole.DRIVER),
+  getOrders
+);
+
+// Customer-specific routes (define before :id routes)
+/**
+ * @route   GET /api/v1/orders/my-orders
+ * @desc    Get all orders for authenticated customer
+ * @access  Private (Buyer)
+ */
+router.get(
+  '/my-orders',
+  authenticate,
+  authorize(UserRole.BUYER),
+  getOrders
+);
 
 /**
  * @route   POST /api/v1/orders
@@ -115,57 +155,31 @@ router.patch('/:id/cancel', authenticate, authorize(UserRole.BUYER, UserRole.ADM
 router.post('/:id/refund', authenticate, authorize(UserRole.ADMIN), initiateRefund);
 
 /**
+ * @route   POST /api/v1/orders/:id/review
+ * @desc    Add review for order (supports customer, driver, and seller reviews)
+ * @access  Private (Buyer, Seller, Driver)
+ */
+router.post('/:id/review', authenticate, authorize(UserRole.BUYER, UserRole.SELLER, UserRole.DRIVER), addOrderReview);
+
+/**
  * @route   POST /api/v1/orders/:id/review/customer
  * @desc    Add customer review for order
- * @access  Private (Buyer)
+ * @access  Private (Seller, Driver)
  */
-router.post('/:id/review/customer', authenticate, authorize(UserRole.BUYER), addCustomerReview);
+router.post('/:id/review/customer', authenticate, authorize(UserRole.SELLER, UserRole.DRIVER), addCustomerReview);
 
 /**
  * @route   POST /api/v1/orders/:id/review/driver
  * @desc    Add driver review for order
- * @access  Private (Buyer)
+ * @access  Private (Buyer, Seller)
  */
-router.post('/:id/review/driver', authenticate, authorize(UserRole.BUYER), addDriverReview);
+router.post('/:id/review/driver', authenticate, authorize(UserRole.BUYER, UserRole.SELLER), addDriverReview);
 
-// Seller-specific routes
 /**
- * @route   GET /api/v1/orders/seller/orders
- * @desc    Get all orders for a seller
- * @access  Private (Seller)
+ * @route   POST /api/v1/orders/:id/review/seller
+ * @desc    Add seller review for order
+ * @access  Private (Buyer, Driver)
  */
-router.get(
-  '/seller/orders',
-  authenticate,
-  authorize(UserRole.SELLER),
-  getOrders
-);
-
-
-// Driver-specific routes
-/**
- * @route   GET /api/v1/orders/driver/deliveries
- * @desc    Get all deliveries for a driver
- * @access  Private (Driver)
- */
-router.get(
-  '/driver/deliveries',
-  authenticate,
-  authorize(UserRole.DRIVER),
-  getOrders
-);
-
-// Customer-specific routes
-/**
- * @route   GET /api/v1/orders/my-orders
- * @desc    Get all orders for authenticated customer
- * @access  Private (Buyer)
- */
-router.get(
-  '/my-orders',
-  authenticate,
-  authorize(UserRole.BUYER),
-  getOrders
-);
+router.post('/:id/review/seller', authenticate, authorize(UserRole.BUYER, UserRole.DRIVER), addCustomerReview);
 
 export default router;

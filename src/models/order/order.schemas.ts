@@ -133,14 +133,14 @@ export const ReviewSchema = new Schema<IDriverReview>(
   {
     rating: {
       type: Number,
-      required: true,
-      min: 1,
+      min: 0,
       max: 5,
+      default: 0,
     },
     review: {
       type: String,
-      required: true,
       maxlength: 1000,
+      default: '',
     },
     reviewedAt: {
       type: Date,

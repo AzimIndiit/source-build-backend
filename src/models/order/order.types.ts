@@ -3,6 +3,7 @@ import { Document, Types, Model } from 'mongoose';
 export enum OrderStatus {
   PENDING = 'Pending',
   PROCESSING = 'Processing',
+  IN_TRANSIT = 'in-transit',
   OUT_FOR_DELIVERY = 'Out for Delivery',
   DELIVERED = 'Delivered',
   CANCELLED = 'Cancelled',
@@ -81,6 +82,8 @@ export interface ICustomerInfo extends IUserInfo {}
 
 export interface IDriverInfo extends IUserInfo {}
 
+export interface ISellerInfo extends IUserInfo {}
+
 export interface ICustomerReview {
   rating: number;
   review: string;
@@ -105,13 +108,16 @@ export interface IOrder extends Document, IOrderMethods {
   orderNumber?: string;
   customer: ICustomerInfo;
   driver?: IDriverInfo;
+  seller?: ISellerInfo;
   products: IOrderProduct[];
   date: string;
   amount: number;
   status: OrderStatus;
   orderSummary: IOrderSummary & {
     shippingAddress: IShippingAddress;
+    pickupAddress?: IShippingAddress;
     proofOfDelivery?: string;
+    deliveryMessage?: string;
     paymentMethod: IPaymentDetails;
     subTotal: number;
   };
@@ -130,7 +136,7 @@ export interface IOrderMethods {
   calculateTotal(): number;
   updateStatus(status: OrderStatus, updatedBy?: Types.ObjectId): Promise<IOrder>;
   assignDriver(driverId: Types.ObjectId): Promise<IOrder>;
-  markAsDelivered(proofOfDelivery?: string): Promise<IOrder>;
+  markAsDelivered(proofOfDelivery?: string, deliveryMessage?: string): Promise<IOrder>;
   cancelOrder(reason: string, updatedBy?: Types.ObjectId): Promise<IOrder>;
   initiateRefund(reason: string): Promise<IOrder>;
   addCustomerReview(rating: number, review: string): Promise<IOrder>;
@@ -160,6 +166,7 @@ export interface CreateOrderDTO {
     price: number;
   }[];
   shippingAddress: IShippingAddress;
+  pickupAddress?: IShippingAddress;
   billingAddress?: IShippingAddress;
   paymentMethod: PaymentMethod;
   deliveryInstructions?: string;
@@ -178,6 +185,7 @@ export interface UpdateOrderDTO {
 export interface OrderFilterDTO {
   status?: OrderStatus;
   customer?: string;
+  seller?: string;  
   driver?: string;
   startDate?: Date;
   endDate?: Date;

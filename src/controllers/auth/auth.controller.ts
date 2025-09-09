@@ -24,8 +24,8 @@ import { createNotificationService } from '@/services/notification.service.js'
  * Helper function to create consistent user response objects based on role
  */
 export const formatUserResponse = (user: IUser) => {
-  const userProfile = user.profile as any;
-  
+  const userProfile = user.profile as any
+
   // Base fields common to all users
   const baseResponse: any = {
     id: user._id,
@@ -41,8 +41,8 @@ export const formatUserResponse = (user: IUser) => {
     avatar: userProfile?.avatar,
     currentLocationId: user.currentLocationId,
     currentLocation: (user as any).currentLocation || null, // Include populated location
-    authType:user.authType
-  };
+    authType: user.authType,
+  }
 
   // Add role-specific fields based on user role
   switch (user.role) {
@@ -59,24 +59,24 @@ export const formatUserResponse = (user: IUser) => {
         region: userProfile?.region,
         address: userProfile?.address,
         description: userProfile?.description,
-      };
+      }
 
     case UserRole.DRIVER:
+      console.log('userProfile', userProfile)
       return {
         ...baseResponse,
         phone: userProfile?.phone,
         address: userProfile?.address,
-        isVehicles: userProfile?.isVehicles ,
-        isLicense:userProfile?.isLicense,
-        
-      };
+        isVehicles: userProfile?.isVehicles,
+        isLicense: userProfile?.isLicense,
+      }
 
     case UserRole.BUYER:
       return {
         ...baseResponse,
         address: userProfile?.address,
         region: userProfile?.region,
-      };
+      }
 
     case UserRole.ADMIN:
       return {
@@ -86,7 +86,7 @@ export const formatUserResponse = (user: IUser) => {
         adminLevel: userProfile?.adminLevel,
         lastLoginIP: userProfile?.lastLoginIP,
         twoFactorEnabled: userProfile?.twoFactorEnabled || false,
-      };
+      }
 
     default:
       // Fallback for any other roles
@@ -94,9 +94,9 @@ export const formatUserResponse = (user: IUser) => {
         ...baseResponse,
         phone: user.phone,
         address: userProfile?.address,
-      };
+      }
   }
-};
+}
 
 /**
  * Set authentication cookies
@@ -178,7 +178,7 @@ export const register = [
               } else if (!req.body.einNumber) {
                 message = 'EIN number is required for seller registration'
                 field = 'einNumber'
-              } else if (req.body.localDelivery===false && !req.body.salesTaxId) {
+              } else if (req.body.localDelivery === false && !req.body.salesTaxId) {
                 message = 'Sales Tax ID is required for seller registration'
                 field = 'salesTaxId'
               } else if (!req.body.phone) {
@@ -195,7 +195,7 @@ export const register = [
               } else if (!req.body.phone) {
                 message = 'Phone number is required for driver registration'
                 field = 'phone'
-              } 
+              }
             }
           }
 
@@ -298,8 +298,6 @@ export const register = [
     // Register the user
     const { user, otpSent } = await authService.register(registerData)
 
-
-
     // // Notify admins about new user
     // await notifyAdminsNewUser(user);
     // logger.info('User registered successfully', {
@@ -313,7 +311,7 @@ export const register = [
     return ApiResponse.created(
       res,
       {
-        user:userResponse,
+        user: userResponse,
         otpSent,
       },
       'Registration successful. Please verify your email.'
@@ -359,10 +357,9 @@ export const login = [
     })
 
     logger.info('User logged in successfully', { userId: user._id, email: user.email })
-      
-  
-   const userResponse = formatUserResponse(user)
-   console.log('userResponse',user, userResponse)
+
+    const userResponse = formatUserResponse(user)
+    console.log('userResponse', user, userResponse)
     return ApiResponse.success(
       res,
       {
@@ -441,10 +438,10 @@ export const requestPasswordReset = [
   validate(forgotPasswordSchema),
   catchAsync(async (req: Request, res: Response) => {
     const { email } = req.body
-    const  isUserExists = await UserModal.findOne({ email })
- if(!isUserExists){
-  return ApiResponse.success(res,null,"If an account with this email exists, you’ll receive a password reset link.",200)
- }
+    const isUserExists = await UserModal.findOne({ email })
+    if (!isUserExists) {
+      return ApiResponse.badRequest(res, 'Account not found!. Please register first.')
+    }
     const resetToken = await authService.generatePasswordResetToken(email)
 
     // In a real application, you would send this token via email
@@ -510,10 +507,7 @@ export const googleLogin = (req: Request, res: Response, next: NextFunction) => 
   // If role is provided, validate it
   if (role) {
     if (!Object.values(UserRole).includes(role)) {
-      return ApiResponse.badRequest(
-        res,
-        'Invalid role parameter. Must be buyer, seller, or driver'
-      )
+      return ApiResponse.badRequest(res, 'Invalid role parameter. Must be buyer, seller, or driver')
     }
 
     if (role === UserRole.ADMIN) {
@@ -563,7 +557,7 @@ export const googleCallback = [
       const redirectUrl = new URL(config.FRONTEND_URL || 'http://localhost:3000')
       redirectUrl.pathname = '/auth/login'
       redirectUrl.searchParams.append('content', user._id.toString())
-      
+
       logger.info('Redirecting to role selection', { userId: user._id })
       return res.redirect(redirectUrl.toString())
     }
@@ -633,7 +627,7 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response) => 
 
   // Format user response using helper function
   const userResponse = formatUserResponse(user)
-console.log('userResponse', userResponse)
+  console.log('userResponse', userResponse)
   return ApiResponse.success(
     res,
     {

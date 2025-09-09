@@ -73,13 +73,18 @@ export const orderMethods: IOrderMethods = {
 
   markAsDelivered: async function(
     this: IOrder, 
-    proofOfDelivery?: string
+    proofOfDelivery?: string,
+    deliveryMessage?: string
   ): Promise<IOrder> {
     this.status = OrderStatus.DELIVERED;
     this.actualDeliveryDate = new Date();
     
     if (proofOfDelivery) {
-      this.proofOfDelivery = proofOfDelivery;
+      this.orderSummary.proofOfDelivery = proofOfDelivery;
+    }
+    
+    if (deliveryMessage) {
+      this.orderSummary.deliveryMessage = deliveryMessage;
     }
     
     const tracking: IOrderTracking = {
@@ -95,7 +100,8 @@ export const orderMethods: IOrderMethods = {
     
     logger.info('Order marked as delivered', { 
       orderId: this._id,
-      proofOfDelivery: !!proofOfDelivery 
+      proofOfDelivery: !!proofOfDelivery,
+      hasMessage: !!deliveryMessage
     });
     
     return this;

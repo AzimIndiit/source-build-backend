@@ -14,6 +14,7 @@ import {
   ICustomerInfo,
   IDriverInfo,
   IOrderProduct,
+  ISellerInfo,
 } from '@models/order/order.types.js';
 
 class OrderService {
@@ -64,8 +65,13 @@ class OrderService {
       const taxes = orderData.orderSummary?.taxes || (subTotal * 0.08);
       const total = subTotal + shippingFee + marketplaceFee + taxes;
 
+      const sellerInfo : ISellerInfo = {
+        userRef: orderProducts[0].seller,
+      };
+
       const order = await OrderModal.create({
         customer: customerInfo,
+        seller: sellerInfo,
         products: orderProducts,
         date: new Date().toLocaleDateString('en-US', { 
           month: 'short', 
@@ -111,7 +117,8 @@ class OrderService {
       if (filters.status) query.status = filters.status;
       if (filters.customer) query['customer.userRef'] = filters.customer;
       if (filters.driver) query['driver.userRef'] = filters.driver;
-      
+      if (filters.seller) query['seller.userRef'] = filters.seller;
+
       if (filters.startDate || filters.endDate) {
         query.createdAt = {};
         if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
@@ -136,7 +143,7 @@ class OrderService {
       } else if (userRole === 'driver' && userId) {
         query['driver.userRef'] = userId;
       } else if (userRole === 'seller' && userId) {
-        query['products.seller'] = userId;
+        query['seller.userRef'] = userId;
       }
 
       const sort: any = {};
@@ -154,6 +161,7 @@ class OrderService {
           .limit(limit)
           .populate('customer.userRef', 'displayName email phone avatar')
           .populate('driver.userRef', 'displayName email phone avatar')
+           .populate('seller.userRef', 'displayName email phone avatar')
           .populate('products.productRef', 'title price images'),
         OrderModal.countDocuments(query),
       ]);
@@ -179,12 +187,26 @@ class OrderService {
 
   async getOrderById(orderId: string): Promise<IOrder> {
     try {
-      const order = await OrderModal.findOne({ 
-         orderNumber: orderId 
-      })
-        .populate('customer.userRef', 'displayName email phone avatar')
-        .populate('driver.userRef', 'displayName email phone avatar')
-        .populate('products.productRef', 'title price images slug');
+      let order: IOrder | null = null;
+      
+      // Check if orderId is a valid ObjectId
+      if (orderId.match(/^[0-9a-fA-F]{24}$/)) {
+        // It's a valid ObjectId format, try to find by _id first
+        order = await OrderModal.findById(orderId)
+          .populate('customer.userRef', 'displayName email phone avatar')
+          .populate('driver.userRef', 'displayName email phone avatar')
+          .populate('seller.userRef', 'displayName email phone avatar')
+          .populate('products.productRef', 'title price images slug');
+      }
+      
+      // If not found by _id or not a valid ObjectId, try by orderNumber
+      if (!order) {
+        order = await OrderModal.findOne({ orderNumber: orderId })
+          .populate('customer.userRef', 'displayName email phone avatar')
+          .populate('driver.userRef', 'displayName email phone avatar')
+          .populate('seller.userRef', 'displayName email phone avatar')
+          .populate('products.productRef', 'title price images slug');
+      }
 
       if (!order) {
         throw ApiError.notFound('Order not found');
@@ -203,7 +225,8 @@ class OrderService {
       
       const validTransitions: Record<OrderStatus, OrderStatus[]> = {
         [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-        [OrderStatus.PROCESSING]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
+        [OrderStatus.PROCESSING]: [OrderStatus.IN_TRANSIT, OrderStatus.CANCELLED],
+        [OrderStatus.IN_TRANSIT]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.CANCELLED],
         [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
         [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
         [OrderStatus.CANCELLED]: [],
@@ -369,10 +392,7 @@ class OrderService {
     try {
       const order = await this.getOrderById(orderId);
       
-      if (order.customer.userRef?.toString() !== userId) {
-        throw ApiError.forbidden('You can only review your own orders');
-      }
-      
+  
       if (order.status !== OrderStatus.DELIVERED) {
         throw ApiError.badRequest('Can only review delivered orders');
       }
@@ -404,9 +424,7 @@ class OrderService {
     try {
       const order = await this.getOrderById(orderId);
       
-      if (order.customer.userRef?.toString() !== userId) {
-        throw ApiError.forbidden('You can only review drivers for your own orders');
-      }
+  
       
       if (!order.driver) {
         throw ApiError.badRequest('No driver assigned to this order');
@@ -430,6 +448,41 @@ class OrderService {
       return order;
     } catch (error) {
       logger.error('Error adding driver review:', error);
+      throw error;
+    }
+  }
+  async addSellerReview(
+    orderId: string, 
+    rating: number, 
+    review: string, 
+    userId: string
+  ): Promise<IOrder> {
+    try {
+      const order = await this.getOrderById(orderId);
+      
+   
+      if (!order.seller) {
+        throw ApiError.badRequest('No seller assigned to this order');
+      }
+      
+      if (order.status !== OrderStatus.DELIVERED) {
+        throw ApiError.badRequest('Can only review delivered orders');
+      }
+
+      // Update order with embedded review
+      if (order.seller) {
+        order.seller.reviewRef = {
+          rating,
+          review,
+          reviewedAt: new Date(),
+        };
+        await order.save();
+      }
+      
+      logger.info(`Seller review added to order ${orderId}`);
+      return order;
+    } catch (error) {
+      logger.error('Error adding seller review:', error);
       throw error;
     }
   }

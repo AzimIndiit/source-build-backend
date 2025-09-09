@@ -29,6 +29,9 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
     driver: {
       type: InfoSchema,
     },
+    seller: {
+      type: InfoSchema,
+    },
     products: {
       type: [OrderProductSchema],
       required: true,
@@ -54,8 +57,16 @@ const OrderSchema = new Schema<IOrder, IOrderModel>(
           type: ShippingAddressSchema,
           required: true,
         },
+        pickupAddress: {
+          type: ShippingAddressSchema,
+          required: false,
+        },
         proofOfDelivery: {
           type: String,
+        },
+        deliveryMessage: {
+          type: String,
+          maxlength: 500,
         },
         paymentMethod: {
           type: PaymentDetailsSchema,
