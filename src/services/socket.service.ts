@@ -132,8 +132,8 @@ const markAllAsRead = async (socket: Socket, chatId: string, userId: string): Pr
         readAt: new Date(),
       }
     )
-
-    await ChatModal.findByIdAndUpdate(chatId, { [`unread_counts.${userId}`]: 0 })
+console.log('`unreadCounts.${userId}`', `unreadCounts.${userId}`)
+    await ChatModal.findByIdAndUpdate(chatId, { [`unreadCounts.${userId}`]: 0 })
 
     const chatResult = await ChatModal.findById(chatId)
       .populate({
@@ -142,13 +142,9 @@ const markAllAsRead = async (socket: Socket, chatId: string, userId: string): Pr
       
       })
       .populate({
-        path: 'last_message',
-        populate: {
-          path: 'attachments',
-          select: 'url mimetype originalname',
-        },
+        path: 'lastMessage',
+      
       })
-
     if (chatResult) {
       socket?.broadcast?.emit('update_unread_count', chatResult)
     }
@@ -282,7 +278,7 @@ const markAsRead = async (userId: string, data: MessageData): Promise<void> => {
       }
 
       await ChatModal.findByIdAndUpdate(message.chat, {
-        [`unread_counts.${userId}`]: 0,
+        [`unreadCounts.${userId}`]: 0,
       })
     }
   } catch (error) {

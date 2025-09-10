@@ -56,7 +56,7 @@ export const getSingleChat = [
         select: 'displayName email isOnline avatar',
       
       })
-      .populate('last_message');
+      .populate('lastMessage');
 
     if (!chat) {
       throw ApiError.notFound('Chat not found');
@@ -80,7 +80,7 @@ export const getChatById = [
         path: 'participants',
         select: 'displayName email isOnline avatar',
       })
-      .populate('last_message')
+      .populate('lastMessage')
       .lean();
 
     if (!chat) {
@@ -145,7 +145,7 @@ export const getOrCreateChat = [
         path: 'participants',
         select: 'displayName email isOnline avatar',
       })
-      .populate('last_message')
+      .populate('lastMessage')
       .lean();
 
     // Add id field for frontend compatibility

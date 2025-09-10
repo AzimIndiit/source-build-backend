@@ -2,8 +2,8 @@ import { Document, Model, Types } from 'mongoose';
 
 export interface IChatBase {
   participants: Types.ObjectId[];
-  last_message?: Types.ObjectId;
-  unread_counts: Map<string, number>;
+  lastMessage?: Types.ObjectId;
+  unreadCounts: Map<string, number>;
   is_active: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -32,7 +32,7 @@ export interface CreateChatDTO {
 }
 
 export interface UpdateChatDTO {
-  last_message?: Types.ObjectId;
-  unread_counts?: Map<string, number>;
+  lastMessage?: Types.ObjectId;
+  unreadCounts?: Map<string, number>;
   is_active?: boolean;
 }

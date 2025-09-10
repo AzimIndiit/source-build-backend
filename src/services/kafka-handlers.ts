@@ -98,7 +98,16 @@ export const handleChatMessage = async (payload: EachMessagePayload): Promise<vo
       updatedAt: newMessage.updatedAt,
       tempId: message.tempId
     };
-    
+    const chatResult = await ChatModal.findById( message.chatId)
+      .populate({
+        path: 'participants',
+        select: 'displayName email isOnline avatar',
+      
+      })
+      .populate({
+        path: 'lastMessage',
+
+      })
     // Emit to the chat room
     const roomName = message.chatId.toString();
     
@@ -106,16 +115,23 @@ export const handleChatMessage = async (payload: EachMessagePayload): Promise<vo
     const room = io.sockets.adapter.rooms.get(roomName);
     if (room && room.size > 0) {
       io.to(roomName).emit('new_message', messageToEmit);
+      io.emit('update_unread_count', chatResult);
       logger.info(`Emitted new_message to room: ${roomName}`, {
         messageId: newMessage._id.toString(),
         tempId: message.tempId,
-        roomMembers: room.size
+        roomMembers: room.size 
       });
+
     } else {
       logger.warn(`Room ${roomName} has no members, emitting to all sockets as fallback`);
       
       // Fallback: emit to all connected sockets (they will filter by chatId)
+      
+
+      io.emit('update_unread_count', chatResult);
       io.emit('new_message', messageToEmit);
+       
+    
     }
     
     logger.info('Chat message processed and saved:', {

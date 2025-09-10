@@ -124,11 +124,7 @@ export const createOrUpdateLicense = catchAsync(async (req: Request, res: Respon
   console.log('license', license)
 
   // Update user's isLicense flag
-  await UserModal.findByIdAndUpdate(
-    userId,
-    { $set: { 'profile.isLicense': true } },
-    { new: true }
-  )
+  await UserModal.findByIdAndUpdate(userId, { $set: { 'profile.isLicense': true } }, { new: true })
 
   return ApiResponse.success(res, license, 'License information saved successfully', 201)
 })
@@ -137,18 +133,45 @@ export const createOrUpdateLicense = catchAsync(async (req: Request, res: Respon
  * Get all vehicles for a driver
  */
 export const getDriverVehicles = catchAsync(async (req: Request, res: Response) => {
+  const query = req.query
   const userId = req.user?.id
+  const page = parseInt(String(query['page'] || '1')) || 1
+  const limit = parseInt(String(query['limit'] || '10')) || 10
+  const skip = (page - 1) * limit
 
   if (!userId) {
     throw ApiError.notFound('User not found')
   }
-
-  const vehicles = await VehicleModal.find({
+  let filter = {
     userId,
     isActive: true,
-  }).sort({ createdAt: -1 })
+  }
 
-  return ApiResponse.success(res, vehicles, 'Vehicle fetched successfully', 200)
+  const [vehicle, total] = await Promise.all([
+    VehicleModal.find(filter)
+
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      ,
+    VehicleModal.countDocuments(filter),
+  ])
+
+  const totalPages = Math.ceil(total / limit)
+  return ApiResponse.successWithPagination(
+    res,
+    vehicle,
+    {
+      page,
+      limit,
+      total,
+      pages: totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+    'Vehicle fetched successfully',
+    200
+  )
 })
 
 /**

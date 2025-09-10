@@ -3,7 +3,7 @@ import { Document, Types, Model } from 'mongoose';
 export enum OrderStatus {
   PENDING = 'Pending',
   PROCESSING = 'Processing',
-  IN_TRANSIT = 'in-transit',
+  IN_TRANSIT = 'In Transit',
   OUT_FOR_DELIVERY = 'Out for Delivery',
   DELIVERED = 'Delivered',
   CANCELLED = 'Cancelled',
@@ -187,8 +187,8 @@ export interface OrderFilterDTO {
   customer?: string;
   seller?: string;  
   driver?: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: string | Date; // Accept both string and Date
+  endDate?: string | Date; // Accept both string and Date
   minAmount?: number;
   maxAmount?: number;
   paymentMethod?: PaymentMethod;

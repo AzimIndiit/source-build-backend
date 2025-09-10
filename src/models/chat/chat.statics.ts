@@ -21,7 +21,7 @@ export async function findUserChats(
     
     })
     .populate({
-      path: 'last_message',
+      path: 'lastMessage',
       populate: {
         path: 'attachments',
         select: 'url mimetype originalname',

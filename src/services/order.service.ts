@@ -119,10 +119,34 @@ class OrderService {
       if (filters.driver) query['driver.userRef'] = filters.driver;
       if (filters.seller) query['seller.userRef'] = filters.seller;
 
-      if (filters.startDate || filters.endDate) {
-        query.createdAt = {};
-        if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
-        if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+      // Build date filter object separately to avoid mutation issues
+      const dateFilter: any = {};
+      if (filters.startDate) {
+        const startDateStr = typeof filters.startDate === 'string' ? filters.startDate : filters.startDate.toISOString();
+        // If date string is in YYYY-MM-DD format, parse it as local date
+        if (startDateStr.length === 10) { // YYYY-MM-DD format
+          // Parse as UTC date at start of day to avoid timezone issues
+          dateFilter.$gte = new Date(startDateStr + 'T00:00:00.000Z');
+        } else {
+          // Handle full datetime strings
+          dateFilter.$gte = new Date(startDateStr);
+        }
+      }
+      if (filters.endDate) {
+        const endDateStr = typeof filters.endDate === 'string' ? filters.endDate : filters.endDate.toISOString();
+        // If date string is in YYYY-MM-DD format, parse it as local date
+        if (endDateStr.length === 10) { // YYYY-MM-DD format
+          // Parse as UTC date at end of day to avoid timezone issues
+          dateFilter.$lte = new Date(endDateStr + 'T23:59:59.999Z');
+        } else {
+          // Handle full datetime strings
+          dateFilter.$lte = new Date(endDateStr);
+        }
+      }
+      
+      // Only add createdAt filter if we have date filters
+      if (Object.keys(dateFilter).length > 0) {
+        query.createdAt = dateFilter;
       }
 
       if (filters.minAmount || filters.maxAmount) {
@@ -148,12 +172,28 @@ class OrderService {
 
       const sort: any = {};
       if (filters.sort) {
-        const [field, order] = filters.sort.split(':');
-        sort[field] = order === 'desc' ? -1 : 1;
+        // Handle MongoDB-style sort parameter (e.g., "-createdAt" or "amount")
+        if (filters.sort.startsWith('-')) {
+          sort[filters.sort.substring(1)] = -1; // Descending
+        } else if (filters.sort.includes(':')) {
+          // Legacy format support
+          const [field, order] = filters.sort.split(':');
+          sort[field] = order === 'desc' ? -1 : 1;
+        } else {
+          sort[filters.sort] = 1; // Ascending
+        }
       } else {
         sort.createdAt = -1;
       }
-
+      // Debug logging for query construction
+      logger.debug('MongoDB query constructed:', {
+        driver: query['driver.userRef'],
+        createdAt: query.createdAt,
+        status: query.status,
+        seller: query['seller.userRef'],
+        customer: query['customer.userRef']
+      });
+      
       const [orders, total] = await Promise.all([
         OrderModal.find(query)
           .sort(sort)
@@ -165,7 +205,8 @@ class OrderService {
           .populate('products.productRef', 'title price images'),
         OrderModal.countDocuments(query),
       ]);
-
+      
+      logger.debug(`Query results: Found ${orders.length} orders out of ${total} total matching the query`);
       const totalPages = Math.ceil(total / limit);
 
       return {

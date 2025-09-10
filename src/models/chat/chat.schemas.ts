@@ -10,11 +10,11 @@ export const ChatSchema = new Schema<IChat, IChatModel, IChatMethods>(
         required: true,
       },
     ],
-    last_message: {
+    lastMessage: {
       type: Schema.Types.ObjectId,
       ref: 'Message',
     },
-    unread_counts: {
+    unreadCounts: {
       type: Map,
       of: Number,
       default: new Map(),

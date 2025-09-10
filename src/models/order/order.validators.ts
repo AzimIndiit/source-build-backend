@@ -111,8 +111,8 @@ export const orderFilterSchema = z.object({
     customer: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
     driver: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
     seller: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
+    startDate: z.string().optional(), // Accept date string in YYYY-MM-DD format
+    endDate: z.string().optional(), // Accept date string in YYYY-MM-DD format
     minAmount: z.string().transform(Number).optional(),
     maxAmount: z.string().transform(Number).optional(),
     paymentMethod: z.nativeEnum(PaymentMethod).optional(),

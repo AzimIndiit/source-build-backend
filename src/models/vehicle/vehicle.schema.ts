@@ -79,7 +79,7 @@ vehicleSchema.index({ vehicleRegistrationNumber: 1 });
 
 // Virtual for formatted display name
 vehicleSchema.virtual('displayName').get(function() {
-  return `${this.vehicleManufacturer} ${this.vehicleModel} (${this.vehicleRegistrationNumber})`;
+  return `${this.vehicleManufacturer} ${this.vehicleModel}`;
 });
 
 // Ensure JSON output includes virtuals

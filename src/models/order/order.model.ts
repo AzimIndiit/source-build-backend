@@ -181,6 +181,38 @@ OrderSchema.virtual('daysUntilDelivery').get(function() {
   return diffDays;
 });
 
+// Virtual for formatted shipping address
+OrderSchema.virtual('orderSummary.formattedShippingAddress').get(function() {
+  const addr = this.orderSummary?.shippingAddress;
+  if (!addr) return '';
+  
+  const parts = [
+    addr.address,
+    addr.city,
+    addr.state,
+    addr.country,
+    addr.zip
+  ].filter(Boolean);
+  
+  return parts.join(', ');
+});
+
+// Virtual for formatted pickup address
+OrderSchema.virtual('orderSummary.formattedPickupAddress').get(function() {
+  const addr = this.orderSummary?.pickupAddress;
+  if (!addr) return '';
+  
+  const parts = [
+    addr.address,
+    addr.city,
+    addr.state,
+    addr.country,
+    addr.zip
+  ].filter(Boolean);
+  
+  return parts.join(', ');
+});
+
 // Pre-save middleware
 OrderSchema.pre('save', async function(next) {
   if (this.isNew) {
