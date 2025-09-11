@@ -146,6 +146,10 @@ const userSchema = new Schema<IUser>(
       type: authSchema,
       default: () => ({}),
     },
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
   },
   userSchemaOptions
 )

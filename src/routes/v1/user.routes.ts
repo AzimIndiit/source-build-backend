@@ -1,9 +1,13 @@
 import { Router } from 'express';
-import { authenticate } from '@middlewares/auth.middleware.js';
+import { authenticate, authorize } from '@middlewares/auth.middleware.js';
 import userController from '@controllers/user.controller.js';
+import { UserRole } from '@/models/user/user.types';
+import { createCard, deleteCard, getSavedCards, setDefaultCard } from '@/controllers/userCard.controller';
+import { createCardSchema, updateCardSchema } from '@/models/user-card/userCard.validators';
+import { validate } from '@middlewares/validation.middleware.js';
 
 const router = Router();
-
+router.use(authenticate);
 /**
  * @swagger
  * /api/v1/user/profile:
@@ -118,5 +122,12 @@ router.get('/profile', authenticate, userController.getProfile);
  *         description: Invalid location ID
  */
 router.put('/current-location', authenticate, userController.updateCurrentLocation);
+
+
+// Card management routes
+router.post('/cards',  authorize(UserRole.BUYER) ,validate(createCardSchema,'body'), createCard);
+router.get('/cards',  authorize(UserRole.BUYER), getSavedCards);
+router.put('/cards/:id/default',  authorize(UserRole.BUYER), setDefaultCard);
+router.delete('/cards/:id',   authorize(UserRole.BUYER),deleteCard);
 
 export default router;

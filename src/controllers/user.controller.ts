@@ -6,6 +6,7 @@ import { IUser } from '@models/user/user.types.js';
 import ApiError from '@utils/ApiError.js';
 import catchAsync from '@utils/catchAsync.js';
 import logger from '@config/logger.js';
+import { formatUserResponse } from './auth/auth.controller';
 
 /**
  * Update user profile
@@ -114,39 +115,13 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
     updatedFields: Object.keys(finalUpdateData) 
   });
 
-  // Format response using the formatUserResponse helper from auth controller
-  const userResponse = {
-    id: updatedUser._id,
-    email: updatedUser.email,
-    firstName: updatedUser.firstName || updatedUser.profile?.firstName,
-    lastName: updatedUser.lastName || updatedUser.profile?.lastName,
-    displayName: updatedUser.displayName || `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim(),
-    role: updatedUser.role,
-    isVerified: updatedUser.isVerified || updatedUser.isEmailVerified,
-    avatar: updatedUser.profile?.avatar,
-    region: updatedUser.profile?.region,
-    address: updatedUser.profile?.address,
-    description: updatedUser.profile?.description,
-    phone: updatedUser.profile?.phone,
-    createdAt: updatedUser.createdAt,
-    updatedAt: updatedUser.updatedAt,
-  };
 
-  // Add seller-specific fields to response
-  if (updatedUser.role === 'seller') {
-    userResponse.businessName = updatedUser.profile?.businessName;
-    userResponse.businessAddress = updatedUser.profile?.businessAddress;
-    userResponse.cellPhone = updatedUser.profile?.cellPhone;
-    userResponse.einNumber = updatedUser.profile?.einNumber;
-    userResponse.salesTaxId = updatedUser.profile?.salesTaxId;
-    userResponse.localDelivery = updatedUser.profile?.localDelivery;
-  }
 
   res.status(200).json({
     success: true,
     message: 'Profile updated successfully',
     data: {
-      user: userResponse,
+      user: formatUserResponse(updatedUser),
     },
   });
 });
@@ -162,44 +137,10 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     throw ApiError.unauthorized('User not authenticated');
   }
 
-  // Format user response
-  const userResponse: any = {
-    id: user._id,
-    email: user.email,
-    firstName: user.firstName || user.profile?.firstName,
-    lastName: user.lastName || user.profile?.lastName,
-    displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-    role: user.role,
-    isVerified: user.isVerified || user.isEmailVerified,
-    avatar: user.profile?.avatar,
-    region: user.profile?.region,
-    address: user.profile?.address,
-    description: user.profile?.description,
-    phone: user.profile?.phone,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
-
-  // Add seller-specific fields
-  if (user.role === 'seller') {
-    userResponse.businessName = user.profile?.businessName;
-    userResponse.businessAddress = user.profile?.businessAddress;
-    userResponse.cellPhone = user.profile?.cellPhone;
-    userResponse.einNumber = user.profile?.einNumber;
-    userResponse.salesTaxId = user.profile?.salesTaxId;
-    userResponse.localDelivery = user.profile?.localDelivery;
-  }
-
-  // Add driver-specific fields
-  if (user.role === 'driver') {
-    userResponse.isVehicles = user.profile?.isVehicles;
-    userResponse.isLicense = user.profile?.isLicense;
-  }
-
   res.status(200).json({
     success: true,
     data: {
-      user: userResponse,
+      user: formatUserResponse(user),
     },
   });
 });

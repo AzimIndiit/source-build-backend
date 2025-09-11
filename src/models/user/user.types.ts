@@ -90,6 +90,7 @@ interface IBaseProfile {
  */
 export interface IBuyerProfile extends IBaseProfile {
   role: UserRole.BUYER;
+  description?: string;
   
 }
 
@@ -105,6 +106,7 @@ export interface ISellerProfile extends IBaseProfile {
   localDelivery?: boolean;
   phone: string;
   cellPhone?: string;
+  description?: string;
   
 }
 
@@ -212,6 +214,7 @@ export interface IUser extends IUserBase<IUserProfile>, Document {
   avatar?: string;
   isOnline?: boolean;
   currentLocationId?: string | any;
+  stripeCustomerId?: string;
    
   // Instance methods
   comparePassword(candidatePassword: string): Promise<boolean>;

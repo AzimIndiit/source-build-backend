@@ -5,6 +5,7 @@ import ApiError from '@utils/ApiError.js';
 import logger from '@config/logger.js';
 import emailService from './email.service.js';
 import { formatUserResponse } from '@/controllers/auth/auth.controller.js';
+import StripeService from './stripe.service.js';
 
 /**
  * Interface for login credentials
@@ -111,6 +112,16 @@ class AuthService {
       // Generate tokens
       const tokens = this.generateTokens(user);
 
+      // Create Stripe customer if doesn't exist
+      if (!user.stripeCustomerId) {
+        const customer = await StripeService.createCustomer({
+          email: user.email,
+          name: user.displayName,
+        });
+        user.stripeCustomerId = customer.id;
+        await user.save();
+      }
+
       // Generate OTP for email verification
       const otp = this.generateOTP();
       
@@ -178,6 +189,16 @@ class AuthService {
 
       // Add refresh token to user
       await user.addRefreshToken(tokens.refreshToken);
+
+      // Create Stripe customer if doesn't exist
+      if (!user.stripeCustomerId) {
+        const customer = await StripeService.createCustomer({
+          email: user.email,
+          name: user.displayName,
+        });
+        user.stripeCustomerId = customer.id;
+        await user.save();
+      }
 
       // Update remember me preference if provided
       if (credentials.rememberMe !== undefined) {

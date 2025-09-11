@@ -14,6 +14,7 @@ import userRoutes from './user.routes.js';
 import contactRoutes from './contactus.routes.js'
 import vehicleRoutes from './vehicle.routes.js';
 import cmsRoutes from './cms.routes.js';
+import configRoutes from './config.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -49,6 +50,7 @@ router.use('/user', userRoutes);
 router.use('/contact',contactRoutes)
 router.use('/driver', vehicleRoutes);
 router.use('/cms', cmsRoutes);
+router.use('/config', configRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);
@@ -174,6 +176,11 @@ router.get('/health', (_req, res) => {
       user: {
         profile: 'GET /api/v1/user/profile',
         updateProfile: 'PUT /api/v1/user/profile',
+        cards: 'POST /api/v1/user/cards',
+        getCards: 'GET /api/v1/user/cards',
+        updateCard: 'PUT /api/v1/user/cards/:id',
+        setDefaultCard: 'PUT /api/v1/user/cards/:id/default',
+        deleteCard: 'DELETE /api/v1/user/cards/:id',
       },
       contact: {
         create: 'POST /api/v1/contact',

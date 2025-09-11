@@ -42,6 +42,7 @@ export const formatUserResponse = (user: IUser) => {
     currentLocationId: user.currentLocationId,
     currentLocation: (user as any).currentLocation || null, // Include populated location
     authType: user.authType,
+    stripeCustomerId:user.stripeCustomerId
   }
 
   // Add role-specific fields based on user role
@@ -76,6 +77,7 @@ export const formatUserResponse = (user: IUser) => {
         ...baseResponse,
         address: userProfile?.address,
         region: userProfile?.region,
+        description: userProfile?.description,
       }
 
     case UserRole.ADMIN:
@@ -295,7 +297,7 @@ export const register = [
     }
     console.log('registerData', registerData)
     registerData = { ...registerData, firstName: req.body.firstName, lastName: req.body.lastName }
-    // Register the user
+    // Register the user (Stripe customer creation is handled in the service)
     const { user, otpSent } = await authService.register(registerData)
 
     // // Notify admins about new user
@@ -375,7 +377,8 @@ export const login = [
  * Refresh access token
  */
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const refreshToken = req.body.refreshToken || req.cookies.refreshToken
+  // Check for refresh token in multiple places (handle both camelCase and snake_case)
+  const refreshToken = req.body?.refreshToken || req.body?.refresh_token || req.cookies?.refreshToken
 
   if (!refreshToken) {
     throw ApiError.unauthorized('Refresh token is required')

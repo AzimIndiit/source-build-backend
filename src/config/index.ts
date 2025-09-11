@@ -37,6 +37,7 @@ const envSchema = z.object({
   
   // Payment Gateway Configuration
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
   

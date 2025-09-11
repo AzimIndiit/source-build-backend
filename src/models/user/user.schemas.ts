@@ -84,6 +84,10 @@ const baseProfileSchema = {
 export const buyerProfileSchema = new Schema<IBuyerProfile>(
   {
     ...baseProfileSchema,
+    description: {
+      type: String,
+      default: '',
+    },
     role: {
       type: String,
       enum: [UserRole.BUYER],
@@ -134,7 +138,11 @@ export const sellerProfileSchema = new Schema<ISellerProfile>(
     phone:{
       type:String,
       default:''
-    }
+    },
+    description: {
+      type: String,
+      default: '',
+    },
   },
   { _id: false, discriminatorKey: 'role' }
 );

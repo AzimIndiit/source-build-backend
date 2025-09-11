@@ -5,6 +5,7 @@ import UserCartModel from '@/models/cart/cart.model.js';
 import RefreshTokenModel from '@/models/refreshToken/refreshToken.model.js';
 import config from '@config/index.js';
 import logger from '@config/logger.js';
+import StripeService from '@/services/stripe.service.js';
 
 // Helper to parse duration string (e.g., '7d' -> milliseconds)
 const parseDuration = (duration: string): number => {
@@ -48,6 +49,18 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
           items: [],
         });
       }
+    }
+
+    // Create Stripe customer if doesn't exist
+    let stripeCustomerId = user.stripeCustomerId
+    if (!stripeCustomerId) {
+      const customer = await StripeService.createCustomer({
+        email: user.email,
+        name: user.displayName,
+      })
+      stripeCustomerId = customer.id
+      user.stripeCustomerId = stripeCustomerId
+      await user.save()
     }
 
     // Generate tokens
