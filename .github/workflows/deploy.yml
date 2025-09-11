@@ -48,6 +48,17 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Debug connectivity
+        run: |
+          echo "SERVER_HOST=${{ secrets.SERVER_HOST }}"
+          echo "🔎 Trying DNS resolution..."
+          nslookup ${{ secrets.SERVER_HOST }} || true
+          echo "🔎 Trying ping..."
+          ping -c 3 ${{ secrets.SERVER_HOST }} || true
+          echo "🔎 Trying SSH port 22..."
+          nc -zv ${{ secrets.SERVER_HOST }} 22 || true
+        
 
       - name: Add server to known hosts
         run: | 
