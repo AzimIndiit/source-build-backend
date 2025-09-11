@@ -50,7 +50,10 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known hosts
-        run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        run: | 
+          mkdir -p ~/.ssh
+          echo "Scanning host: ${{ secrets.SERVER_HOST }}"
+          ssh-keyscan -T 10 -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Rsync project to server
         run: |
