@@ -1,22 +1,23 @@
 import { Router } from 'express';
-import { authenticate } from '@middlewares/auth.middleware.js';
+import { authenticate, optionalAuthenticate } from '@middlewares/auth.middleware.js';
 import * as productController from '@controllers/products/product.controller.js';
 const router = Router();
 
 router.get(
   '/',
-  authenticate,
+  optionalAuthenticate,
   productController.getProducts
 );
 
 router.get(
   '/id/:id',
+  optionalAuthenticate,
   productController.getProductById
 );
 
 router.get(
   '/:slug',
-  authenticate,
+  optionalAuthenticate,
   productController.getProductBySlug
 );
 
