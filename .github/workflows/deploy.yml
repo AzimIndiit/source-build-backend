@@ -54,22 +54,14 @@ jobs:
           echo "SERVER_HOST=${{ secrets.SERVER_HOST }}"
           echo "🔎 Trying DNS resolution..."
           nslookup ${{ secrets.SERVER_HOST }} || true
-          echo "🔎 Trying ping..."
-          ping -c 3 ${{ secrets.SERVER_HOST }} || true
           echo "🔎 Trying SSH port 22..."
           nc -zv ${{ secrets.SERVER_HOST }} 22 || true
-        
-
-      - name: Add server to known hosts
-        run: | 
-          mkdir -p ~/.ssh
-          echo "Scanning host: ${{ secrets.SERVER_HOST }}"
-          ssh-keyscan -T 10 -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Rsync project to server
         run: |
-          ssh ubuntu@${{ secrets.SERVER_HOST }} "sudo mkdir -p /opt/source-build/backend && sudo chown -R ubuntu:ubuntu /opt/source-build"
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "sudo mkdir -p /opt/source-build/backend && sudo chown -R ubuntu:ubuntu /opt/source-build"
           rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='.github' \
@@ -77,12 +69,11 @@ jobs:
      
       - name: Copy .env to deployment path
         run: |
-          ssh ubuntu@${{ secrets.SERVER_HOST }} "cp /home/ubuntu/source-build-backend/.env /opt/source-build/backend/.env"
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} "cp /home/ubuntu/source-build-backend/.env /opt/source-build/backend/.env"
 
-   
       - name: Deploy with Docker Compose
         run: |
-          ssh ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_HOST }} << 'EOF'
             set -e
             cd /opt/source-build/backend
 
