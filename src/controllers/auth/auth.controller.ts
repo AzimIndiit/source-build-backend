@@ -580,7 +580,7 @@ export const googleCallback = [
 
     // Add refresh token to user
     await user.addRefreshToken(tokens.refreshToken)
-
+  
     // Set authentication cookies
     setAuthCookies(res, tokens)
 

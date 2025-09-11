@@ -53,6 +53,7 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
 
     // Create Stripe customer if doesn't exist
     let stripeCustomerId = user.stripeCustomerId
+    console.log('stripeCustomerId---1', stripeCustomerId)
     if (!stripeCustomerId) {
       const customer = await StripeService.createCustomer({
         email: user.email,

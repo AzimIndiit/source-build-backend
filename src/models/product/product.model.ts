@@ -142,10 +142,18 @@ const productSchema = new Schema<IProduct, IProductModel>(
     },
     readyByDate: {
       type: Date,
+      default: undefined,
     },
     readyByTime: {
       type: String,
       trim: true,
+      default: '',
+    },
+    readyByDays:{
+      type: Number,
+      default: 0,
+      min: [0, 'Ready by days must be at least 0'],
+      max: [60, 'Ready by days must not exceed 60'],
     },
     discount: {
       type: discountSchema,

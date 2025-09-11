@@ -1,9 +1,10 @@
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import UserModal from '../models/user/user.model.js';
-import { IUser, UserRole, UserStatus, AuthType } from '../models/user/user.types.js';
-import config from './index.js';
-import logger from './logger.js';
+import passport from 'passport'
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import UserModal from '../models/user/user.model.js'
+import { IUser, UserRole, UserStatus, AuthType } from '../models/user/user.types.js'
+import config from './index.js'
+import logger from './logger.js'
+import StripeService from '@/services/stripe.service.js'
 
 // TypeScript types for passport
 declare global {
@@ -14,19 +15,19 @@ declare global {
 
 // Serialize user for session
 passport.serializeUser((user: any, done) => {
-  done(null, user._id);
-});
+  done(null, user._id)
+})
 
 // Deserialize user from session
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await UserModal.findById(id);
-    done(null, user);
+    const user = await UserModal.findById(id)
+    done(null, user)
   } catch (error) {
-    logger.error('Failed to deserialize user', { error, userId: id });
-    done(error, null);
+    logger.error('Failed to deserialize user', { error, userId: id })
+    done(error, null)
   }
-});
+})
 
 // Google OAuth Strategy
 passport.use(
@@ -39,44 +40,47 @@ passport.use(
     },
     async (req: any, _accessToken: string, _refreshToken: string, profile: any, done: any) => {
       try {
-        logger.info('Google OAuth callback', { googleId: profile.id, email: profile.emails?.[0]?.value });
+        logger.info('Google OAuth callback', {
+          googleId: profile.id,
+          email: profile.emails?.[0]?.value,
+        })
 
         // Extract email from profile
-        const email = profile.emails?.[0]?.value;
+        const email = profile.emails?.[0]?.value
         if (!email) {
-          return done(new Error('No email found in Google profile'), null);
+          return done(new Error('No email found in Google profile'), null)
         }
 
         // Check if user already exists with this Google ID
         let user = await UserModal.findOne({
           $or: [
             { 'profile.socialAccounts.providerId': profile.id },
-            { email: email.toLowerCase() }
-          ]
-        });
+            { email: email.toLowerCase() },
+          ],
+        })
 
         if (!user) {
           // Get role from session if provided (for direct signup with role selection)
-          const role = req.session?.role as UserRole | undefined;
-          
+          const role = req.session?.role as UserRole | undefined
+
           // If a role is provided, validate it
           if (role) {
             if (!Object.values(UserRole).includes(role) || role === UserRole.ADMIN) {
-              logger.warn('Invalid role attempted via Google OAuth', { role });
-              return done(new Error('Invalid registration role'), null);
+              logger.warn('Invalid role attempted via Google OAuth', { role })
+              return done(new Error('Invalid registration role'), null)
             }
           }
 
           // Process Google avatar URL to prevent rate limiting
-          let avatarUrl = profile.photos?.[0]?.value;
+          let avatarUrl = profile.photos?.[0]?.value
           if (avatarUrl) {
             // Replace the size parameter to get a larger, non-cropped image
             // This helps avoid rate limiting and provides better quality
-            avatarUrl = avatarUrl.replace(/s\d+-c/, 's400');
+            avatarUrl = avatarUrl.replace(/s\d+-c/, 's400')
           }
 
           // Base user data - create without role if not provided
-          const userData: any = {
+          let userData: any = {
             email: email.toLowerCase(),
             googleId: profile.id,
             authType: AuthType.GOOGLE,
@@ -85,27 +89,27 @@ passport.use(
             displayName: profile.displayName || profile.name?.givenName || email.split('@')[0],
             isEmailVerified: true, // Google accounts are pre-verified
             termsAccepted: false, // Will need to be confirmed in UI with role selection
-          };
+          }
 
           // Only set role and profile if role was provided
           if (role) {
-            userData.role = role;
-            userData.termsAccepted = true;
-            
+            userData.role = role
+            userData.termsAccepted = true
+
             // Build role-specific profile and set status based on role
             switch (role) {
               case UserRole.BUYER:
-                userData.status = UserStatus.ACTIVE; // Buyers can be active immediately
+                userData.status = UserStatus.ACTIVE // Buyers can be active immediately
                 userData.profile = {
                   role: UserRole.BUYER,
                   addresses: [],
                   avatar: avatarUrl,
-                };
-                break;
+                }
+                break
 
               case UserRole.SELLER:
                 // Seller needs additional info - mark as pending
-                userData.status = UserStatus.PENDING;
+                userData.status = UserStatus.PENDING
                 userData.profile = {
                   role: UserRole.SELLER,
                   phone: '', // Required - needs to be collected
@@ -115,12 +119,12 @@ passport.use(
                   addresses: [],
                   localDelivery: false,
                   avatar: avatarUrl,
-                };
-                break;
+                }
+                break
 
               case UserRole.DRIVER:
                 // Driver needs additional info - mark as pending
-                userData.status = UserStatus.PENDING;
+                userData.status = UserStatus.PENDING
                 userData.profile = {
                   role: UserRole.DRIVER,
                   phone: '', // Required - needs to be collected
@@ -132,72 +136,83 @@ passport.use(
                   },
                   vehicles: [],
                   avatar: avatarUrl,
-                };
-                break;
+                }
+                break
             }
           } else {
             // No role provided - user needs to select role
-            userData.status = UserStatus.PENDING;
-            userData.role = null; // No role assigned yet
+            userData.status = UserStatus.PENDING
+            userData.role = null // No role assigned yet
             userData.profile = {
               addresses: [],
               avatar: avatarUrl,
-            };
+            }
           }
 
-          user = await UserModal.create(userData);
+          // Create Stripe customer if doesn't exist
+          let stripeCustomerId = userData.stripeCustomerId
+          if (!stripeCustomerId) {
+            const customer = await StripeService.createCustomer({
+              email: userData.email,
+              name: userData.displayName,
+            })
+            stripeCustomerId = customer.id
+            userData.stripeCustomerId = stripeCustomerId
+          }
 
-          logger.info('New user created via Google OAuth', { userId: user._id, email: user.email });
+          user = await UserModal.create(userData)
+
+          logger.info('New user created via Google OAuth', { userId: user._id, email: user.email })
         } else {
           // Update existing user with Google info if needed
-          let needsUpdate = false;
-          
+          let needsUpdate = false
+
           // Add Google ID if not set (using type assertion for now)
           if (!(user as any).googleId) {
-            (user as any).googleId = profile.id;
-            user.authType = AuthType.GOOGLE;
-            needsUpdate = true;
+            ;(user as any).googleId = profile.id
+            user.authType = AuthType.GOOGLE
+            needsUpdate = true
           }
-          
+
           // Update avatar in profile if not set
           if (!(user.profile as any)?.avatar && profile.photos?.[0]?.value) {
             if (!user.profile) {
-              user.profile = { addresses: [] } as any;
+              user.profile = { addresses: [] } as any
             }
             // Process avatar URL to prevent rate limiting
-            let existingUserAvatarUrl = profile.photos[0].value;
+            let existingUserAvatarUrl = profile.photos[0].value
             if (existingUserAvatarUrl) {
-              existingUserAvatarUrl = existingUserAvatarUrl.replace(/s\d+-c/, 's400');
+              existingUserAvatarUrl = existingUserAvatarUrl.replace(/s\d+-c/, 's400')
             }
-            (user.profile as any).avatar = existingUserAvatarUrl;
-            needsUpdate = true;
+            ;(user.profile as any).avatar = existingUserAvatarUrl
+            needsUpdate = true
           }
-          
+
           // Update display name if not set
           if (!user.displayName && profile.displayName) {
-            user.displayName = profile.displayName;
-            needsUpdate = true;
+            user.displayName = profile.displayName
+            needsUpdate = true
           }
-          
+
           // Save updates if needed
           if (needsUpdate) {
-            await user.save();
+            await user.save()
           }
-          
-          logger.info('Existing user logged in via Google OAuth', { 
-            userId: user._id, 
+
+          logger.info('Existing user logged in via Google OAuth', {
+            userId: user._id,
             email: user.email,
-            role: user.role 
-          });
+            role: user.role,
+          })
         }
 
-        return done(null, user);
+        return done(null, user)
       } catch (error) {
-        logger.error('Google OAuth error', { error, googleId: profile.id });
-        return done(error, null);
+        logger.error('Google OAuth error', { error, googleId: profile.id })
+        return done(error, null)
       }
     }
   )
-);
+)
 
-export default passport;
+export default passport

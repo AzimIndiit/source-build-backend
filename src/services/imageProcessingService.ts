@@ -69,6 +69,11 @@ class ImageProcessingService {
       throw new Error(`Image size exceeds maximum allowed size of ${this.maxImageSize / (1024 * 1024)}MB`);
     }
 
+    // Skip dimension validation for SVG files
+    if (mimeType === 'image/svg+xml') {
+      return;
+    }
+
     try {
       const metadata = await sharp(buffer).metadata();
       
@@ -96,6 +101,17 @@ class ImageProcessingService {
     options: ImageProcessingOptions = {}
   ): Promise<ProcessedImage> {
     try {
+      // SVG files don't need processing
+      if (mimeType === 'image/svg+xml') {
+        return {
+          buffer,
+          mimeType,
+          size: buffer.length,
+          dimensions: { width: 0, height: 0 }, // SVG is scalable
+          extension: 'svg',
+        };
+      }
+
       const sharpInstance = sharp(buffer);
       const metadata = await sharpInstance.metadata();
       
@@ -171,6 +187,19 @@ class ImageProcessingService {
     options: ImageProcessingOptions = {}
   ): Promise<ImageVariants> {
     const variants: ImageVariants = {};
+
+    // SVG files don't need variants
+    if (mimeType === 'image/svg+xml') {
+      return {
+        original: {
+          buffer,
+          mimeType,
+          size: buffer.length,
+          dimensions: { width: 0, height: 0 },
+          extension: 'svg',
+        }
+      };
+    }
 
     try {
       // Generate compressed version

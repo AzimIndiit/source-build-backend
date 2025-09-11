@@ -564,7 +564,13 @@ export const uploadMiddleware = (fieldName: string) => {
           let uploadResult: ProcessedFile;
           
           // Check file type and process accordingly
-          if (imageProcessingService.isImage(req.file.mimetype)) {
+          // Handle SVG files separately (no processing needed)
+          if (req.file.mimetype === 'image/svg+xml') {
+            logger.info('Uploading SVG file:', req.file.originalname);
+            uploadResult = await uploadRegularFile(req.file, fieldName);
+            // Mark as image but without processing
+            uploadResult.isImage = true;
+          } else if (imageProcessingService.isImage(req.file.mimetype)) {
             logger.info('Processing image file:', req.file.originalname);
             uploadResult = await processAndUploadImage(req.file, fieldName);
           } else if (videoProcessingService.isVideo(req.file.mimetype)) {
@@ -661,7 +667,13 @@ export const uploadArray = (fieldName: string, maxCount: number = 5) => {
             let uploadResult: ProcessedFile;
             
             // Check file type and process accordingly
-            if (imageProcessingService.isImage(file.mimetype)) {
+            // Handle SVG files separately (no processing needed)
+            if (file.mimetype === 'image/svg+xml') {
+              logger.info(`Uploading SVG file ${index + 1}:`, file.originalname);
+              uploadResult = await uploadRegularFile(file, `${fieldName}-${index}`);
+              // Mark as image but without processing
+              uploadResult.isImage = true;
+            } else if (imageProcessingService.isImage(file.mimetype)) {
               logger.info(`Processing image file ${index + 1}:`, file.originalname);
               uploadResult = await processAndUploadImage(file, `${fieldName}-${index}`);
             } else if (videoProcessingService.isVideo(file.mimetype)) {

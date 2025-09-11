@@ -133,6 +133,7 @@ export const createProductDraftSchema = z.object({
     shippingPrice: z.number().optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
+    readyByDays: z.number().min(0).max(60).optional(),
     discount: draftDiscountSchema,
     dimensions: dimensionsSchema,
     availabilityRadius: z.number().optional(),
@@ -211,6 +212,7 @@ export const createProductSchema = z.object({
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
+    readyByDays: z.number().min(0).max(60).optional(),
     discount: discountSchema.optional(),
     dimensions: dimensionsSchema,
     availabilityRadius: z
@@ -347,6 +349,7 @@ export const updateProductSchema = z.object({
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
+    readyByDays: z.number().min(0).max(60).optional(),
     discount: discountSchema.optional(),
     dimensions: dimensionsSchema,
     availabilityRadius: z
