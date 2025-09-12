@@ -1,5 +1,8 @@
 import { Model, Types } from 'mongoose';
 import { IProduct, ProductStatus } from '@models/product/product.types.js';
+import Wishlist from '@models/wishlist/wishlist.model.js';
+import Review from '@models/review/review.model.js';
+import { ReviewType } from '@models/review/review.types.js';
 
 export async function findByCategory(
   this: Model<IProduct>,
@@ -82,3 +85,83 @@ export async function updateStock(
   await product.save();
   return product;
 }
+
+export async function populateWishlistStatus(
+  this: Model<IProduct>,
+  products: IProduct[],
+  userId: string | null
+): Promise<any[]> {
+  if (!userId || products.length === 0) {
+    return products.map(product => ({
+      ...product.toObject(),
+      isInWishlist: false,
+      hasUserReviewed: false
+    }));
+  }
+
+  // Get wishlist items
+  const wishlist = await Wishlist.findOne({ user: userId });
+  const wishlistProductIds = wishlist ? wishlist.items.map(item => item.product.toString()) : [];
+
+  // Get all product IDs that the user has reviewed
+  const productIds = products.map(p => p._id);
+  const userReviews = await Review.find({
+    reviewer: userId,
+    product: { $in: productIds },
+    type: ReviewType.PRODUCT
+  }).select('product');
+  
+  const reviewedProductIds = userReviews.map(review => review.product.toString());
+
+  return products.map(product => {
+    const productObj = product.toObject();
+    return {
+      ...productObj,
+      isInWishlist: wishlistProductIds.includes(productObj._id.toString()),
+      hasUserReviewed: reviewedProductIds.includes(productObj._id.toString())
+    };
+  });
+}
+
+export async function populateSingleWishlistStatus(
+  this: Model<IProduct>,
+  product: IProduct,
+  userId: string | null
+): Promise<any> {
+  if (!userId) {
+    return {
+      ...product.toObject(),
+      isInWishlist: false,
+      hasUserReviewed: false,
+      userReview: null
+    };
+  }
+
+  const isInWishlist = await Wishlist.checkProductInWishlist(
+    new Types.ObjectId(userId),
+    new Types.ObjectId(product._id)
+  );
+
+  // Check if user has already reviewed this product
+  const existingReview = await Review.findOne({
+    reviewer: userId,
+    product: product._id,
+    type: ReviewType.PRODUCT
+  }).select('_id rating comment title images');
+
+  return {
+    ...product.toObject(),
+    isInWishlist,
+    hasUserReviewed: !!existingReview,
+    userReview: existingReview ? {
+      id: existingReview._id,
+      rating: existingReview.rating,
+      comment: existingReview.comment,
+      title: existingReview.title,
+      images: existingReview.images
+    } : null
+  };
+}
+
+// Alias for backward compatibility and better naming
+export const populateUserProductStatus = populateSingleWishlistStatus;

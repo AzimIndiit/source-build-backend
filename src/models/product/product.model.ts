@@ -29,6 +29,8 @@ import {
   findFeatured,
   searchProducts,
   updateStock,
+  populateWishlistStatus,
+  populateSingleWishlistStatus,
 } from '@models/product/product.statics.js';
 
 const productSchema = new Schema<IProduct, IProductModel>(
@@ -261,6 +263,8 @@ Object.assign(productSchema.statics, {
   findFeatured,
   searchProducts,
   updateStock,
+  populateWishlistStatus,
+  populateSingleWishlistStatus,
 });
 
 // Pre-save middleware

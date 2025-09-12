@@ -16,6 +16,12 @@ router.get(
 );
 
 router.get(
+  '/:id/related',
+  optionalAuthenticate,
+  productController.getRelatedProducts
+);
+
+router.get(
   '/:slug',
   optionalAuthenticate,
   productController.getProductBySlug

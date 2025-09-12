@@ -15,6 +15,8 @@ import contactRoutes from './contactus.routes.js'
 import vehicleRoutes from './vehicle.routes.js';
 import cmsRoutes from './cms.routes.js';
 import configRoutes from './config.routes.js';
+import wishlistRoutes from './wishlist.routes.js';
+import reviewRoutes from './review.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -51,6 +53,8 @@ router.use('/contact',contactRoutes)
 router.use('/driver', vehicleRoutes);
 router.use('/cms', cmsRoutes);
 router.use('/config', configRoutes);
+router.use('/wishlists', wishlistRoutes);
+router.use('/reviews', reviewRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);
@@ -184,6 +188,17 @@ router.get('/health', (_req, res) => {
       },
       contact: {
         create: 'POST /api/v1/contact',
+      },
+      wishlists: {
+        get: 'GET /api/v1/wishlists',
+        add: 'POST /api/v1/wishlists/add',
+        remove: 'POST /api/v1/wishlists/remove',
+        update: 'PATCH /api/v1/wishlists/update',
+        clear: 'DELETE /api/v1/wishlists/clear',
+        check: 'GET /api/v1/wishlists/check/:productId',
+        count: 'GET /api/v1/wishlists/count',
+        popular: 'GET /api/v1/wishlists/popular',
+        batchCheck: 'POST /api/v1/wishlists/batch-check',
       },
     },
     documentation: '/api-docs',

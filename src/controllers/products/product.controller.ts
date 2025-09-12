@@ -64,6 +64,7 @@ export const getProducts = [
   catchAsync(async (req: Request, res: Response) => {
     const query = req.query
     const user = req.user?.id || null
+    const userRole=req?.user?.role || null
     const page = parseInt(String(query['page'] || '1')) || 1
     const limit = parseInt(String(query['limit'] || '10')) || 10
     const skip = (page - 1) * limit
@@ -72,7 +73,7 @@ export const getProducts = [
       status: ProductStatus.ACTIVE,
     }
 
-    if (user) {
+    if (user && userRole!=='buyer') {
       filter.seller = user
       delete filter.status
     }
@@ -202,15 +203,17 @@ export const getProducts = [
         .populate('locationIds')
         .sort(sortOptions)
         .skip(skip)
-        .limit(limit)
-        .lean(),
+        .limit(limit),
       ProductModal.countDocuments(filter),
     ])
+    
+    // Populate wishlist status for each product
+    const productsWithWishlist = await (ProductModal as any).populateWishlistStatus(products, user)
 
     // Get location IDs from the filtered products
     const locationIds = [
       ...new Set(
-        products.flatMap((product) => product.locationIds?.map((loc) => loc._id?.toString()) || [])
+        productsWithWishlist.flatMap((product: any) => product.locationIds?.map((loc: any) => loc._id?.toString()) || [])
       ),
     ].filter(Boolean)
 
@@ -225,7 +228,7 @@ export const getProducts = [
     return ApiResponse.successWithPagination(
       res,
       {
-        products,
+        products: productsWithWishlist,
         availableLocations,
       },
       {
@@ -243,6 +246,7 @@ export const getProducts = [
 
 export const getProductById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const userId = req.user?.id || null
 
   if (!Types.ObjectId.isValid(id as string)) {
     throw ApiError.badRequest('Invalid product ID')
@@ -257,13 +261,16 @@ export const getProductById = catchAsync(async (req: Request, res: Response) => 
     throw ApiError.notFound('Product not found')
   }
 
-  return ApiResponse.success(res, product, 'Product retrieved successfully')
+  const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(product, userId)
+
+  return ApiResponse.success(res, productWithWishlist, 'Product retrieved successfully')
 })
 
 export const getProductBySlug = [
   validate(getProductBySlugSchema, 'params'),
   catchAsync(async (req: Request, res: Response) => {
     const slug: string = req.params['slug'] as string
+    const userId = req.user?.id || null
 
     if (!slug) {
       throw ApiError.badRequest('Invalid product slug')
@@ -278,8 +285,10 @@ export const getProductBySlug = [
     }
 
     await product.incrementView()
+    
+    const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(product, userId)
 
-    return ApiResponse.success(res, product, 'Product retrieved successfully')
+    return ApiResponse.success(res, productWithWishlist, 'Product retrieved successfully')
   }),
 ]
 
@@ -403,4 +412,49 @@ export const updateProductStock = catchAsync(async (req: Request, res: Response)
   await product.populate('seller', 'displayName email avatar profile')
 
   return ApiResponse.success(res, product, 'Product stock updated successfully')
+})
+
+export const getRelatedProducts = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const userId = req.user?.id || null
+  const limit = parseInt(String(req.query.limit || '8')) || 8
+
+  if (!Types.ObjectId.isValid(id as string)) {
+    throw ApiError.badRequest('Invalid product ID')
+  }
+
+  // Get the current product to find its category
+  const currentProduct = await ProductModal.findById(id)
+  
+  if (!currentProduct) {
+    throw ApiError.notFound('Product not found')
+  }
+
+  // Find related products based on category and subcategory
+  const filter: any = {
+    _id: { $ne: currentProduct._id }, // Exclude current product
+    status: ProductStatus.ACTIVE,
+    $or: [
+      { category: currentProduct.category, subCategory: currentProduct.subCategory }, // Same subcategory (highest priority)
+      { category: currentProduct.category }, // Same category
+      { productTag: { $in: currentProduct.productTag || [] } }, // Similar tags
+    ]
+  }
+
+  // Fetch related products
+  const relatedProducts = await ProductModal.find(filter)
+    .populate('seller', 'displayName email avatar profile')
+    .populate('locationIds')
+    .sort({ 
+      // Sort by relevance: same subcategory first, then by rating
+      subCategory: currentProduct.subCategory === '$subCategory' ? -1 : 1,
+      rating: -1,
+      views: -1 
+    })
+    .limit(limit)
+
+  // Populate wishlist status for each product
+  const productsWithWishlist = await (ProductModal as any).populateWishlistStatus(relatedProducts, userId)
+
+  return ApiResponse.success(res, productsWithWishlist, 'Related products retrieved successfully')
 })
