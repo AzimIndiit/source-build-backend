@@ -78,6 +78,31 @@ export const getProducts = [
       delete filter.status
     }
 
+    // Handle wishlist filter
+    if (query['isInWishlist'] && user) {
+      const Wishlist = (await import('../../models/wishlist/wishlist.model.js')).default
+      const wishlist = await Wishlist.findOne({ user })
+      const isInWishlistValue = String(query['isInWishlist'])
+      
+      if (isInWishlistValue === 'true') {
+        // Show only products in wishlist
+        if (wishlist && wishlist.items.length > 0) {
+          const wishlistProductIds = wishlist.items.map((item: any) => item.product)
+          filter._id = { $in: wishlistProductIds }
+        } else {
+          // User has no wishlist items, return empty results
+          filter._id = { $in: [] }
+        }
+      } else if (isInWishlistValue === 'false') {
+        // Show only products NOT in wishlist
+        if (wishlist && wishlist.items.length > 0) {
+          const wishlistProductIds = wishlist.items.map((item: any) => item.product)
+          filter._id = { $nin: wishlistProductIds }
+        }
+        // If no wishlist, all products are "not in wishlist", so no filter needed
+      }
+    }
+
     // ✅ Category, brand, seller, etc. (still supported)
     if (query['category']) filter.category = query['category']
     if (query['subCategory']) filter.subCategory = query['subCategory']
