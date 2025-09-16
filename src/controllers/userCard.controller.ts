@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { UserCard } from '../models/user-card/userCard.model.js'
 import UserModal  from '../models/user/user.model.js'
-import StripeService from '../services/stripe.service.js'
+import stripeService from '../services/stripe.service.js'
 import stripe from '../config/stripe.js'
 import mongoose from 'mongoose'
 import catchAsync from '@/utils/catchAsync.js'
@@ -27,7 +27,7 @@ export const createCard = catchAsync(async (req: Request, res: Response) => {
     // Create Stripe customer if doesn't exist
     let stripeCustomerId = user.stripeCustomerId
     if (!stripeCustomerId) {
-      const customer = await StripeService.createCustomer({
+      const customer = await stripeService.createOrGetCustomer({
         email: user.email,
         name: user.displayName,
       })
@@ -44,7 +44,7 @@ export const createCard = catchAsync(async (req: Request, res: Response) => {
     }
 
     // Attach payment method to customer using the provided token
-    const paymentMethod = await StripeService.attachPaymentMethodToCustomer(
+    const paymentMethod = await stripeService.attachPaymentMethodToCustomer(
       stripeCustomerId,
       token
     )
@@ -66,7 +66,7 @@ export const createCard = catchAsync(async (req: Request, res: Response) => {
 
     // If this card is set as default, update Stripe customer
     if (card.isDefault) {
-      await StripeService.updateCustomerDefaultPaymentMethod(stripeCustomerId, paymentMethod.id)
+      await stripeService.updateCustomerDefaultPaymentMethod(stripeCustomerId, paymentMethod.id)
     }
 
   return ApiResponse.success(res, card, 'Card added successfully', 201)
@@ -100,7 +100,7 @@ export const deleteCard = catchAsync(async (req: Request, res: Response) => {
 
     // Detach payment method from Stripe
     try {
-      await StripeService.detachPaymentMethod(cardToDelete.paymentMethodId)
+      await stripeService.detachPaymentMethod(cardToDelete.paymentMethodId)
     } catch (stripeError) {
       console.error('Error detaching payment method from Stripe:', stripeError)
       // Continue with deletion even if Stripe detach fails
@@ -122,7 +122,7 @@ export const deleteCard = catchAsync(async (req: Request, res: Response) => {
         // Update Stripe customer default payment method
         const user = await UserModal.findById(userId)
         if (user?.stripeCustomerId) {
-          await StripeService.updateCustomerDefaultPaymentMethod(
+          await stripeService.updateCustomerDefaultPaymentMethod(
             user.stripeCustomerId,
             anotherCard.paymentMethodId
           )
@@ -162,7 +162,7 @@ export const setDefaultCard = catchAsync(async (req: Request, res: Response) => 
     // Update Stripe customer default payment method
     const user = await UserModal.findById(userId)
     if (user?.stripeCustomerId) {
-      await StripeService.updateCustomerDefaultPaymentMethod(
+      await stripeService.updateCustomerDefaultPaymentMethod(
         user.stripeCustomerId,
         card.paymentMethodId
       )

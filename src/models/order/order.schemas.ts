@@ -80,6 +80,9 @@ export const OrderProductSchema = new Schema<IOrderProduct>(
     image: {
       type: String,
     },
+    color: {
+      type: String, // For variant identification
+    },
     deliveryDate: {
       type: String,
     },

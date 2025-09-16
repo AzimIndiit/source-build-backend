@@ -138,9 +138,10 @@ export default {
   },
   
   // Payment Gateway Configuration
-  STRIPE: {
-    SECRET_KEY: validatedConfig.STRIPE_SECRET_KEY,
-    WEBHOOK_SECRET: validatedConfig.STRIPE_WEBHOOK_SECRET,
+  stripe: {
+    secretKey: validatedConfig.STRIPE_SECRET_KEY,
+    publishableKey: validatedConfig.STRIPE_PUBLISHABLE_KEY,
+    webhookSecret: validatedConfig.STRIPE_WEBHOOK_SECRET,
   },
   
   // Google OAuth Configuration

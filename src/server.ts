@@ -84,6 +84,10 @@ app.use(cors({
   exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page'],
 }));
 
+// Webhook routes (before body parsing middleware for raw body access)
+// Stripe webhook needs raw body
+app.use('/api/v1/webhooks', express.raw({ type: 'application/json' }), (await import('./routes/v1/webhook.routes.js')).default);
+
 // Body parsing middleware
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ 

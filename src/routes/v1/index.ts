@@ -17,6 +17,7 @@ import cmsRoutes from './cms.routes.js';
 import configRoutes from './config.routes.js';
 import wishlistRoutes from './wishlist.routes.js';
 import reviewRoutes from './review.routes.js';
+import checkoutRoutes from './checkout.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -55,6 +56,7 @@ router.use('/cms', cmsRoutes);
 router.use('/config', configRoutes);
 router.use('/wishlists', wishlistRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/checkout', checkoutRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);

@@ -4,7 +4,7 @@ import UserModal from '../models/user/user.model.js'
 import { IUser, UserRole, UserStatus, AuthType } from '../models/user/user.types.js'
 import config from './index.js'
 import logger from './logger.js'
-import StripeService from '@/services/stripe.service.js'
+import stripeService from '@/services/stripe.service.js'
 
 // TypeScript types for passport
 declare global {
@@ -152,7 +152,7 @@ passport.use(
           // Create Stripe customer if doesn't exist
           let stripeCustomerId = userData.stripeCustomerId
           if (!stripeCustomerId) {
-            const customer = await StripeService.createCustomer({
+            const customer = await stripeService.createOrGetCustomer({
               email: userData.email,
               name: userData.displayName,
             })

@@ -1,202 +1,311 @@
-import stripe from '../config/stripe.js';
+import Stripe from 'stripe';
+import { stripe } from '../config/stripe.js';
+import { IOrder } from '../models/order/order.types.js';
+import { ITransaction, TransactionStatus, TransactionType } from '../models/transaction/transaction.types.js';
+import Transaction from '../models/transaction/transaction.model.js';
+import { Types } from 'mongoose';
 
 class StripeService {
-  static async createCustomer({ email, name }: { email: string; name: string }) {
-    try {
-      const customer = await stripe.customers.create({
-        email,
-        name,
-      });
-      return customer;
-    } catch (error: any) {
-      throw new Error(`Error creating Stripe customer: ${error.message}`);
-    }
+  private stripe: Stripe;
+
+  constructor() {
+    this.stripe = stripe;
   }
 
-  static async createCardToken({
-    cardNumber,
-    expMonth,
-    expYear,
-    cvc,
-  }: {
-    cardNumber: string;
-    expMonth: number;
-    expYear: number;
-    cvc: string;
+  /**
+   * Create a payment intent for an order
+   */
+  async createPaymentIntent(params: {
+    amount: number;
+    currency?: string;
+    customer?: string;
+    metadata?: Record<string, string>;
+    paymentMethodId?: string;
+    savePaymentMethod?: boolean;
   }) {
-    try {
-      const token = await stripe.tokens.create({
-        card: {
-          number: cardNumber,
-          exp_month: expMonth,
-          exp_year: expYear,
-          cvc,
-        },
-      });
-      return token;
-    } catch (error: any) {
-      throw new Error(`Error creating card token: ${error.message}`);
+    const { 
+      amount, 
+      currency = 'usd', 
+      customer, 
+      metadata = {},
+      paymentMethodId,
+      savePaymentMethod = false
+    } = params;
+
+    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
+      metadata,
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'never', // Don't allow redirect-based payment methods
+      },
+    };
+
+    if (customer) {
+      paymentIntentParams.customer = customer;
     }
+
+    if (paymentMethodId) {
+      paymentIntentParams.payment_method = paymentMethodId;
+      paymentIntentParams.confirm = true;
+    }
+
+    if (savePaymentMethod && customer) {
+      paymentIntentParams.setup_future_usage = 'off_session';
+    }
+
+    const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
+    
+    return paymentIntent;
   }
 
-  static async createPaymentMethodFromToken(tokenId: string) {
-    try {
-      const paymentMethod = await stripe.paymentMethods.create({
-        type: 'card',
-        card: { token: tokenId },
-      });
-      return paymentMethod;
-    } catch (error: any) {
-      throw new Error(`Error creating payment method: ${error.message}`);
+  /**
+   * Confirm a payment intent
+   */
+  async confirmPaymentIntent(paymentIntentId: string, paymentMethodId?: string) {
+    const confirmParams: Stripe.PaymentIntentConfirmParams = {};
+    
+    if (paymentMethodId) {
+      confirmParams.payment_method = paymentMethodId;
     }
+
+    const paymentIntent = await this.stripe.paymentIntents.confirm(
+      paymentIntentId,
+      confirmParams
+    );
+    
+    return paymentIntent;
   }
 
-  static async attachPaymentMethodToCustomer(customerId: string, tokenId: string) {
-    try {
-      // First create a payment method from the token
-      const paymentMethod = await this.createPaymentMethodFromToken(tokenId);
-      
-      // Then attach it to the customer
-      await stripe.paymentMethods.attach(paymentMethod.id, {
-        customer: customerId,
-      });
-
-      return paymentMethod;
-    } catch (error: any) {
-      throw new Error(`Error attaching payment method to customer: ${error.message}`);
-    }
+  /**
+   * Cancel a payment intent
+   */
+  async cancelPaymentIntent(paymentIntentId: string) {
+    const paymentIntent = await this.stripe.paymentIntents.cancel(paymentIntentId);
+    return paymentIntent;
   }
 
-  static async updateCustomerDefaultPaymentMethod(customerId: string, paymentMethodId: string) {
-    try {
-      const customer = await stripe.customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: paymentMethodId,
-        },
-      });
-      return customer;
-    } catch (error: any) {
-      throw new Error(`Error updating customer default payment method: ${error.message}`);
-    }
+  /**
+   * Get a payment intent
+   */
+  async getPaymentIntent(paymentIntentId: string) {
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+    return paymentIntent;
   }
 
-  static async detachPaymentMethod(paymentMethodId: string) {
-    try {
-      const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
-      return paymentMethod;
-    } catch (error: any) {
-      throw new Error(`Error detaching payment method: ${error.message}`);
+  /**
+   * Create or get a Stripe customer
+   */
+  async createOrGetCustomer(params: {
+    email: string;
+    name?: string;
+    phone?: string;
+    metadata?: Record<string, string>;
+  }) {
+    const { email, name, phone, metadata = {} } = params;
+
+    // Check if customer exists
+    const existingCustomers = await this.stripe.customers.list({
+      email,
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      return existingCustomers.data[0];
     }
+
+    // Create new customer
+    const customer = await this.stripe.customers.create({
+      email,
+      name,
+      phone,
+      metadata,
+    });
+
+    return customer;
   }
 
-  static async listCustomerPaymentMethods(customerId: string, type: 'card' | 'bank_account' = 'card') {
-    try {
-      const paymentMethods = await stripe.paymentMethods.list({
-        customer: customerId,
-        type,
-      });
-      return paymentMethods;
-    } catch (error: any) {
-      throw new Error(`Error listing customer payment methods: ${error.message}`);
+  /**
+   * Create a refund for a payment
+   */
+  async createRefund(params: {
+    paymentIntentId?: string;
+    chargeId?: string;
+    amount?: number;
+    reason?: Stripe.RefundCreateParams.Reason;
+    metadata?: Record<string, string>;
+  }) {
+    const refundParams: Stripe.RefundCreateParams = {
+      metadata: params.metadata || {},
+    };
+
+    if (params.paymentIntentId) {
+      refundParams.payment_intent = params.paymentIntentId;
+    } else if (params.chargeId) {
+      refundParams.charge = params.chargeId;
+    } else {
+      throw new Error('Either paymentIntentId or chargeId is required');
     }
+
+    if (params.amount) {
+      refundParams.amount = Math.round(params.amount * 100); // Convert to cents
+    }
+
+    if (params.reason) {
+      refundParams.reason = params.reason;
+    }
+
+    const refund = await this.stripe.refunds.create(refundParams);
+    return refund;
   }
 
-  static async createPaymentIntent(
-    amount: number,
-    currency: string,
-    customerId: string,
-    paymentMethodId: string
+  /**
+   * Attach a payment method to a customer
+   */
+  async attachPaymentMethod(paymentMethodId: string, customerId: string) {
+    const paymentMethod = await this.stripe.paymentMethods.attach(
+      paymentMethodId,
+      { customer: customerId }
+    );
+    return paymentMethod;
+  }
+
+  /**
+   * List customer's payment methods
+   */
+  async listPaymentMethods(customerId: string, type: Stripe.PaymentMethodListParams.Type = 'card') {
+    const paymentMethods = await this.stripe.paymentMethods.list({
+      customer: customerId,
+      type,
+    });
+    return paymentMethods;
+  }
+
+  /**
+   * Create a setup intent for saving payment methods
+   */
+  async createSetupIntent(customerId: string, metadata?: Record<string, string>) {
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      metadata: metadata || {},
+    });
+    return setupIntent;
+  }
+
+  /**
+   * Create a checkout session
+   */
+  async createCheckoutSession(params: {
+    lineItems: Array<{
+      price_data: {
+        currency: string;
+        product_data: {
+          name: string;
+          description?: string;
+          images?: string[];
+        };
+        unit_amount: number;
+      };
+      quantity: number;
+    }>;
+    successUrl: string;
+    cancelUrl: string;
+    customer?: string;
+    metadata?: Record<string, string>;
+  }) {
+    const session = await this.stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: params.lineItems,
+      mode: 'payment',
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      customer: params.customer,
+      metadata: params.metadata || {},
+    });
+    return session;
+  }
+
+  /**
+   * Record a transaction in the database
+   */
+  async recordTransaction(params: {
+    type: TransactionType;
+    status: TransactionStatus;
+    user: Types.ObjectId | string;
+    order?: Types.ObjectId | string;
+    amount: number;
+    stripePaymentIntentId: string;
+    stripeChargeId?: string;
+    paymentMethod?: string;
+    cardDetails?: {
+      last4: string;
+      brand: string;
+      expMonth: number;
+      expYear: number;
+    };
+    metadata?: Record<string, any>;
+  }) {
+    const transaction = await Transaction.create({
+      transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: params.type,
+      status: params.status,
+      user: params.user,
+      order: params.order,
+      amount: params.amount,
+      currency: 'usd',
+      paymentMethod: params.paymentMethod || 'card',
+      stripePaymentIntentId: params.stripePaymentIntentId,
+      stripeChargeId: params.stripeChargeId,
+      cardLast4: params.cardDetails?.last4,
+      cardBrand: params.cardDetails?.brand,
+      cardExpMonth: params.cardDetails?.expMonth,
+      cardExpYear: params.cardDetails?.expYear,
+      metadata: params.metadata,
+    });
+
+    return transaction;
+  }
+
+  /**
+   * Update transaction status
+   */
+  async updateTransactionStatus(
+    stripePaymentIntentId: string, 
+    status: TransactionStatus,
+    additionalData?: {
+      stripeChargeId?: string;
+      failureCode?: string;
+      failureMessage?: string;
+      processedAt?: Date;
+    }
   ) {
-    try {
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(parseFloat(amount.toString()) * 100),
-        currency,
-        customer: customerId,
-        payment_method: paymentMethodId,
-        confirm: true,
-        off_session: true,
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never',
-        },
-      });
-      return paymentIntent;
-    } catch (error: any) {
-      throw new Error(`Error creating payment intent: ${error.message}`);
-    }
+    const transaction = await Transaction.findOneAndUpdate(
+      { stripePaymentIntentId },
+      {
+        status,
+        ...additionalData,
+      },
+      { new: true }
+    );
+
+    return transaction;
   }
 
-  static async retrievePaymentIntent(paymentIntentId: string) {
-    try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      return paymentIntent;
-    } catch (error: any) {
-      throw new Error(`Error retrieving payment intent: ${error.message}`);
-    }
+  /**
+   * Calculate platform fee (example: 5% of the total)
+   */
+  calculatePlatformFee(amount: number, percentage: number = 5): number {
+    return Math.round(amount * (percentage / 100) * 100) / 100;
   }
 
-  static async createBankAccountToken({
-    country,
-    currency,
-    accountNumber,
-    accountHolderName,
-    accountHolderType,
-    routingNumber,
-  }: {
-    country: string;
-    currency: string;
-    accountNumber: string;
-    accountHolderName: string;
-    accountHolderType: 'individual' | 'company';
-    routingNumber: string;
-  }) {
-    try {
-      const token = await stripe.tokens.create({
-        bank_account: {
-          country,
-          currency,
-          account_number: accountNumber,
-          account_holder_name: accountHolderName,
-          account_holder_type: accountHolderType,
-          routing_number: routingNumber,
-        },
-      });
-      return token;
-    } catch (error: any) {
-      throw new Error(`Error creating bank account token: ${error.message}`);
-    }
-  }
-
-  static async attachPaymentSource(customerId: string, sourceToken: string) {
-    try {
-      const source = await stripe.customers.createSource(customerId, {
-        source: sourceToken,
-      });
-      return source;
-    } catch (error: any) {
-      throw new Error(`Error attaching payment source: ${error.message}`);
-    }
-  }
-
-  static async listCustomerPaymentSources(customerId: string, type: 'card' | 'bank_account' = 'card') {
-    try {
-      const sources = await stripe.customers.listSources(customerId, {
-        object: type,
-      });
-      return sources;
-    } catch (error: any) {
-      throw new Error(`Error listing customer payment sources: ${error.message}`);
-    }
-  }
-
-  static async detachPaymentSource(pmId: string) {
-    try {
-      const paymentMethod = await stripe.paymentMethods.detach(pmId);
-      return paymentMethod;
-    } catch (error: any) {
-      throw new Error(`Error detaching payment source: ${error.message}`);
-    }
+  /**
+   * Calculate Stripe fee (2.9% + $0.30)
+   */
+  calculateStripeFee(amount: number): number {
+    return Math.round((amount * 0.029 + 0.30) * 100) / 100;
   }
 }
 
-export default StripeService;
+export default new StripeService();

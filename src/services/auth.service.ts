@@ -5,7 +5,7 @@ import ApiError from '@utils/ApiError.js';
 import logger from '@config/logger.js';
 import emailService from './email.service.js';
 import { formatUserResponse } from '@/controllers/auth/auth.controller.js';
-import StripeService from './stripe.service.js';
+import stripeService from './stripe.service.js';
 
 /**
  * Interface for login credentials
@@ -114,7 +114,7 @@ class AuthService {
 
       // Create Stripe customer if doesn't exist
       if (!user.stripeCustomerId) {
-        const customer = await StripeService.createCustomer({
+        const customer = await stripeService.createOrGetCustomer({
           email: user.email,
           name: user.displayName,
         });
@@ -192,7 +192,7 @@ class AuthService {
 
       // Create Stripe customer if doesn't exist
       if (!user.stripeCustomerId) {
-        const customer = await StripeService.createCustomer({
+        const customer = await stripeService.createOrGetCustomer({
           email: user.email,
           name: user.displayName,
         });

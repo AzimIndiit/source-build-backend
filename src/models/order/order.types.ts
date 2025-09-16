@@ -43,6 +43,7 @@ export interface IOrderProduct {
   price: number;
   quantity: number;
   image?: string;
+  color?: string; // For variant identification
   deliveryDate?: string;
   productRef?: Types.ObjectId;
   seller?: Types.ObjectId;
