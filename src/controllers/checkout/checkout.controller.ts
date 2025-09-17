@@ -14,6 +14,12 @@ import { UserCard } from '../../models/user-card/userCard.model.js';
  */
 export const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  
+  // Check if user is authenticated
+  if (!userId) {
+    return ApiResponse.error(res, 'Authentication required', 401);
+  }
+  
   const {
     items,
     deliveryMethod,
@@ -109,9 +115,9 @@ export const createPaymentIntent = catchAsync(async (req: Request, res: Response
       customer: {
         userRef: userId,
       },
-      seller: {
-        userRef: sellerId !== 'default' ? sellerId : undefined, // Set seller ID for the order
-      },
+      seller: sellerId !== 'default' ? {
+        userRef: sellerId, // Only include seller object if there's a valid seller ID
+      } : undefined,
       products: [{
         id: item.productId,
         title: item.title,

@@ -220,7 +220,7 @@ export const getProducts = [
     // --- Pricing Sorting ---
     if (query['pricing'] === 'high-to-low') sortOptions = { price: -1 }
     if (query['pricing'] === 'low-to-high') sortOptions = { price: 1 }
-
+console.log('filter', filter,userRole)
     // ✅ Fetch products and available locations
     const [products, total] = await Promise.all([
       ProductModal.find(filter)

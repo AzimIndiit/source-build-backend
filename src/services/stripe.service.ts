@@ -172,6 +172,38 @@ class StripeService {
   }
 
   /**
+   * Attach a payment method to a customer using a token
+   * This is an alias for compatibility with token-based flows
+   */
+  async attachPaymentMethodToCustomer(customerId: string, token: string) {
+    // Create a source from the token first
+    const source = await this.stripe.customers.createSource(customerId, {
+      source: token
+    });
+    return source;
+  }
+
+  /**
+   * Update customer's default payment method
+   */
+  async updateCustomerDefaultPaymentMethod(customerId: string, paymentMethodId: string) {
+    const customer = await this.stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId
+      }
+    });
+    return customer;
+  }
+
+  /**
+   * Detach a payment method from a customer
+   */
+  async detachPaymentMethod(paymentMethodId: string) {
+    const paymentMethod = await this.stripe.paymentMethods.detach(paymentMethodId);
+    return paymentMethod;
+  }
+
+  /**
    * List customer's payment methods
    */
   async listPaymentMethods(customerId: string, type: Stripe.PaymentMethodListParams.Type = 'card') {

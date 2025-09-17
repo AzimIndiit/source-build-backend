@@ -1,13 +1,14 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 interface ICartItem {
-  productId: Schema.Types.ObjectId;
+  productId: Types.ObjectId;
+  variantId?: string; // Can be variant ID or color value for identification
   quantity: number;
-  price: number;
+  addedAt: Date;
 }
 
 interface ICart extends Document {
-  user_id: Schema.Types.ObjectId;
+  user: Types.ObjectId;
   items: ICartItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -19,21 +20,24 @@ const cartItemSchema = new Schema<ICartItem>({
     ref: 'Product',
     required: true,
   },
+  variantId: {
+    type: String, // Simplified to string (can be ID or color)
+    required: false,
+  },
   quantity: {
     type: Number,
     required: true,
     min: 1,
   },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
+  addedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
 const cartSchema = new Schema<ICart>(
   {
-    user_id: {
+    user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -43,9 +47,26 @@ const cartSchema = new Schema<ICart>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Method to find item by product and variant
+cartSchema.methods.findItem = function(productId: string, variantId?: string) {
+  return this.items.find((item: ICartItem) => 
+    item.productId.toString() === productId && 
+    (!variantId || item.variantId === variantId)
+  );
+};
+
+// Method to clear cart
+cartSchema.methods.clearCart = function() {
+  this.items = [];
+  return this.save();
+};
 
 const UserCartModel = model<ICart>('Cart', cartSchema);
 
 export default UserCartModel;
+export type { ICart, ICartItem };

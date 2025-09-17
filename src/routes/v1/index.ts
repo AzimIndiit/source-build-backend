@@ -18,6 +18,8 @@ import configRoutes from './config.routes.js';
 import wishlistRoutes from './wishlist.routes.js';
 import reviewRoutes from './review.routes.js';
 import checkoutRoutes from './checkout.routes.js';
+import quoteRoutes from '../quote.routes.js';
+import cartRoutes from './cart.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -57,6 +59,8 @@ router.use('/config', configRoutes);
 router.use('/wishlists', wishlistRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/checkout', checkoutRoutes);
+router.use('/quotes', quoteRoutes);
+router.use('/cart', cartRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);
@@ -201,6 +205,23 @@ router.get('/health', (_req, res) => {
         count: 'GET /api/v1/wishlists/count',
         popular: 'GET /api/v1/wishlists/popular',
         batchCheck: 'POST /api/v1/wishlists/batch-check',
+      },
+      quotes: {
+        createRequest: 'POST /api/v1/quotes/request',
+        list: 'GET /api/v1/quotes',
+        statistics: 'GET /api/v1/quotes/statistics',
+        get: 'GET /api/v1/quotes/:id',
+        updateStatus: 'PATCH /api/v1/quotes/:id/status',
+        provideResponse: 'PUT /api/v1/quotes/:id/response',
+        delete: 'DELETE /api/v1/quotes/:id',
+      },
+      cart: {
+        get: 'GET /api/v1/cart',
+        count: 'GET /api/v1/cart/count',
+        add: 'POST /api/v1/cart/add',
+        update: 'PUT /api/v1/cart/update',
+        remove: 'DELETE /api/v1/cart/remove/:productId/:variantId?',
+        clear: 'DELETE /api/v1/cart/clear',
       },
     },
     documentation: '/api-docs',

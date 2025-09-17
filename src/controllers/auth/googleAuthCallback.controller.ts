@@ -42,10 +42,10 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
 
     // Create cart for buyers if not exists
     if (user.role === 'buyer') {
-      const existingCart = await UserCartModel.findOne({ user_id: user._id });
+      const existingCart = await UserCartModel.findOne({ user: user._id });
       if (!existingCart) {
         await UserCartModel.create({
-          user_id: user._id,
+          user: user._id,
           items: [],
         });
       }

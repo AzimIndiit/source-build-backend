@@ -50,10 +50,10 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
     };
 
     if (payload.role === 'buyer') {
-      const isCart = await UserCartModel.findOne({ user_id: user._id });
+      const isCart = await UserCartModel.findOne({ user: user._id });
       if (!isCart) {
         await UserCartModel.create({
-          user_id: user._id,
+          user: user._id,
           items: [],
         });
       }
