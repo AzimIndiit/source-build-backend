@@ -2,19 +2,19 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import config from '@config/index.js';
-import { UserCartModel } from '@/models/user/user.model.js';
-import { refresh_tokenModel } from '@/models/user/user.model.js';
+import UserModel from '@/models/user/user.model.js';
+import RefreshTokenModel from '@/models/refreshToken/refreshToken.model.js';
 import { parseDuration } from '@/utils/helpers/dateHelpers.js';
 
 const generateaccess_token = (payload: any) => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.accessExpiresIn,
+  return jwt.sign(payload, config.JWT_SECRET, {
+    expiresIn: config.JWT_EXPIRES_IN,
   });
 };
 
 const generaterefresh_token = (userId: string) => {
-  const refresh_token = jwt.sign({ userId }, config.jwt.refreshSecret, {
-    expiresIn: config.jwt.refreshExpiresIn,
+  const refresh_token = jwt.sign({ userId }, config.JWT_REFRESH_SECRET, {
+    expiresIn: config.JWT_REFRESH_EXPIRES_IN,
   });
   return { token: refresh_token };
 };
@@ -67,7 +67,7 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
       token: newaccess_token,
       refresh_token: newrefresh_token,
       expires_at: new Date(
-        Date.now() + parseDuration(config.jwt.refreshExpiresIn)
+        Date.now() + parseDuration(config.JWT_REFRESH_EXPIRES_IN)
       ),
       createdByIp: req.ip,
     });

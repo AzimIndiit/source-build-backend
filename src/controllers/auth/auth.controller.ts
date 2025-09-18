@@ -331,11 +331,13 @@ export const login = [
       email: req.body.email,
       ip: req.ip,
     })
-
+    const { role } = req.body
+    console.log('role-controller', role)
     const credentials: ILoginCredentials = {
       email: req.body.email,
       password: req.body.password,
       rememberMe: req.body.rememberMe || false,
+      role,
     }
 
     const { user, tokens } = await authService.login(credentials)

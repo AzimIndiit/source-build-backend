@@ -8,21 +8,27 @@ import { z } from 'zod';
  */
 
 /**
- * Find user by email address
+ * Find user by email address (excluding deleted accounts)
  */
 export async function findByEmail(this: Model<IUser>, email: string): Promise<IUser | null> {
-  return this.findOne({ email: email.toLowerCase() }).select('+password').exec();
+  return this.findOne({ 
+    email: email.toLowerCase(),
+    status: { $ne: 'deleted' } // Exclude deleted accounts
+  }).select('+password').exec();
 }
 
 /**
- * Find user by username
+ * Find user by username (excluding deleted accounts)
  */
 export async function findByUsername(this: Model<IUser>, username: string): Promise<IUser | null> {
-  return this.findOne({ username: username.toLowerCase() }).select('+password').exec();
+  return this.findOne({ 
+    username: username.toLowerCase(),
+    status: { $ne: 'deleted' } // Exclude deleted accounts
+  }).select('+password').exec();
 }
 
 /**
- * Find user by either email or username
+ * Find user by either email or username (excluding deleted accounts)
  */
 export async function findByEmailOrUsername(
   this: Model<IUser>,
@@ -33,7 +39,8 @@ export async function findByEmailOrUsername(
     $or: [
       { email: lowerIdentifier },
       { username: lowerIdentifier }
-    ]
+    ],
+    status: { $ne: 'deleted' } // Exclude deleted accounts
   }).select('+password').exec();
 }
 

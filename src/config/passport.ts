@@ -51,12 +51,13 @@ passport.use(
           return done(new Error('No email found in Google profile'), null)
         }
 
-        // Check if user already exists with this Google ID
+        // Check if user already exists with this Google ID (excluding deleted accounts)
         let user = await UserModal.findOne({
           $or: [
             { 'profile.socialAccounts.providerId': profile.id },
             { email: email.toLowerCase() },
           ],
+          status: { $ne: UserStatus.DELETED } // Exclude deleted accounts
         })
 
         if (!user) {
@@ -164,6 +165,18 @@ passport.use(
 
           logger.info('New user created via Google OAuth', { userId: user._id, email: user.email })
         } else {
+          // Check if account is blocked or deleted before allowing login
+          if (user.status === UserStatus.INACTIVE) {
+            logger.warn('Blocked user attempted Google login', { 
+              userId: user._id, 
+              email: user.email 
+            });
+            return done(new Error('Your account is deactivated. Please contact support at support@sourcebuild.com'), null);
+          }
+          
+          // This check is no longer needed since we exclude deleted accounts in the query
+          // Deleted accounts will be treated as new registrations
+
           // Update existing user with Google info if needed
           let needsUpdate = false
 

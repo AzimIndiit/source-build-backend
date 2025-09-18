@@ -18,7 +18,7 @@ import configRoutes from './config.routes.js';
 import wishlistRoutes from './wishlist.routes.js';
 import reviewRoutes from './review.routes.js';
 import checkoutRoutes from './checkout.routes.js';
-import quoteRoutes from '../quote.routes.js';
+import quoteRoutes from './quote.routes.js';
 import cartRoutes from './cart.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';

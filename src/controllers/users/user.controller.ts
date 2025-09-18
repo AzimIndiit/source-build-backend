@@ -4,9 +4,12 @@ import mongoose from 'mongoose';
 import User from '@models/user/user.model.js';
 import { IUser } from '@models/user/user.types.js';
 import ApiError from '@utils/ApiError.js';
+import ApiResponse from '@utils/ApiResponse.js';
 import catchAsync from '@utils/catchAsync.js';
 import logger from '@config/logger.js';
-import { formatUserResponse } from './auth/auth.controller';
+import { formatUserResponse } from '../auth/auth.controller';
+import userService from '@services/user.service.js';
+import emailService from '@services/email.service.js';
 
 /**
  * Update user profile
@@ -212,8 +215,188 @@ export const updateCurrentLocation = catchAsync(async (req: Request, res: Respon
   });
 });
 
+/**
+ * Get all users with filters
+ */
+export const getUsers = [
+
+  catchAsync(async (req: Request, res: Response) => {
+    const filters = req.query as any;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    
+    const result = await userService.getUsers(filters, userId, userRole);
+    
+    // Create a custom response with both pagination and stats
+    return res.status(200).json({
+      status: 'success',
+      message: 'Users retrieved successfully',
+      data: result.users,
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: 'v1',
+        pagination: result.pagination,
+        stats: result.stats,
+      },
+    });
+  })
+];
+
+/**
+ * Get user by ID
+ */
+export const getUserById = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  
+  const user = await userService.getUserById(userId);
+  
+  return ApiResponse.success(
+    res,
+    user,
+    'User retrieved successfully'
+  );
+});
+
+/**
+ * Block user
+ */
+export const blockUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  
+  const user = await userService.blockUser(userId);
+  
+  // Send email notification to the blocked user
+  try {
+    if (user.email) {
+      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
+      const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+      
+      await emailService.sendAccountBlockedEmail(
+        user.email,
+        userName,
+        accountType,
+        'Your account has been temporarily blocked due to policy violations. Please contact support for more information.'
+      );
+      
+      logger.info('Block notification email sent', { userId, email: user.email });
+    }
+  } catch (emailError) {
+    // Log error but don't fail the operation
+    logger.error('Failed to send block notification email', { error: emailError, userId });
+  }
+  
+  return ApiResponse.success(
+    res,
+    user,
+    'User blocked successfully'
+  );
+});
+
+/**
+ * Unblock user
+ */
+export const unblockUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  
+  const user = await userService.unblockUser(userId);
+  
+  // Send email notification to the unblocked user
+  try {
+    if (user.email) {
+      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
+      const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+      
+      await emailService.sendAccountUnblockedEmail(
+        user.email,
+        userName,
+        accountType
+      );
+      
+      logger.info('Unblock notification email sent', { userId, email: user.email });
+    }
+  } catch (emailError) {
+    // Log error but don't fail the operation
+    logger.error('Failed to send unblock notification email', { error: emailError, userId });
+  }
+  
+  return ApiResponse.success(
+    res,
+    user,
+    'User unblocked successfully'
+  );
+});
+
+/**
+ * Delete user (soft delete)
+ */
+export const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  
+  // Get user details before deletion for email
+  const user = await User.findById(userId);
+  
+  if (user && user.email) {
+    const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
+    const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+    
+    // Perform the deletion
+    const result = await userService.softDeleteUser(userId);
+    
+    // Send email notification about account deletion
+    try {
+      await emailService.sendAccountDeletedEmail(
+        user.email,
+        userName,
+        accountType,
+        'Account deleted as per administrative action'
+      );
+      
+      logger.info('Deletion notification email sent', { userId, email: user.email });
+    } catch (emailError) {
+      // Log error but don't fail the operation
+      logger.error('Failed to send deletion notification email', { error: emailError, userId });
+    }
+    
+    return ApiResponse.success(
+      res,
+      result,
+      result.message
+    );
+  } else {
+    // If user not found, still try to delete (might be partially deleted)
+    const result = await userService.softDeleteUser(userId);
+    
+    return ApiResponse.success(
+      res,
+      result,
+      result.message
+    );
+  }
+});
+
+/**
+ * Restore deleted user
+ */
+export const restoreUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  
+  const user = await userService.restoreUser(userId);
+  
+  return ApiResponse.success(
+    res,
+    user,
+    'User restored successfully'
+  );
+});
+
 export default {
   updateProfile,
   getProfile,
   updateCurrentLocation,
+  getUsers,
+  getUserById,
+  blockUser,
+  unblockUser,
+  deleteUser,
+  restoreUser,
 };

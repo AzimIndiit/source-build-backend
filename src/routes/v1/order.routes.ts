@@ -56,7 +56,7 @@ router.get(
 router.get(
   '/my-orders',
   authenticate,
-  authorize(UserRole.BUYER),
+  authorize(UserRole.BUYER,UserRole.ADMIN),
   getOrders
 );
 

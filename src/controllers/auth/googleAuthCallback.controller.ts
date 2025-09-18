@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { IUser } from '@/models/user/user.types.js';
+import { IUser, UserStatus } from '@/models/user/user.types.js';
 import UserCartModel from '@/models/cart/cart.model.js';
 import RefreshTokenModel from '@/models/refreshToken/refreshToken.model.js';
 import config from '@config/index.js';
@@ -27,8 +27,32 @@ export const googleCallback = (req: Request, res: Response, next: NextFunction) 
   passport.authenticate('google', { session: false }, async (err: any, user: IUser) => {
     if (err || !user) {
       logger.error('Google authentication failed', { err, user });
+      
+      // Check if error message contains account status issues
+      let errorMessage = 'authentication_failed';
+      if (err?.message?.includes('deactivated')) {
+        errorMessage = 'account_blocked';
+      } else if (err?.message?.includes('Account not found')) {
+        errorMessage = 'account_deleted';
+      }
+      
       return res.redirect(
-        `${process.env.FRONTEND_URL}/auth/login?error=authentication_failed`
+        `${process.env.FRONTEND_URL}/auth/login?error=${errorMessage}`
+      );
+    }
+
+    // Additional safety check for user status
+    if (user.status === UserStatus.INACTIVE) {
+      logger.error('Blocked user bypassed passport check', { userId: user._id, email: user.email });
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/login?error=account_blocked`
+      );
+    }
+    
+    if (user.status === UserStatus.DELETED) {
+      logger.error('Deleted user bypassed passport check', { userId: user._id, email: user.email });
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/login?error=account_deleted`
       );
     }
 

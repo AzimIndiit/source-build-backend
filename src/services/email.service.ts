@@ -131,9 +131,137 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<any
   }
 };
 
+/**
+ * Send account blocked notification email
+ */
+export const sendAccountBlockedEmail = async (
+  email: string, 
+  name: string, 
+  accountType: string,
+  reason?: string
+): Promise<any> => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const emailData = {
+      email,
+      subject: 'Important: Your Source Build Account Has Been Blocked',
+      name: name || email.split('@')[0],
+      accountType: accountType || 'User',
+      date: currentDate,
+      reason: reason || 'Violation of terms of service',
+      supportEmail: 'support@sourcebuild.com',
+      privacyUrl: `${config.FRONTEND_URL}/privacy`,
+      termsUrl: `${config.FRONTEND_URL}/terms`,
+      year: currentYear,
+      sender: 'mohdazimindiit@gmail.com',
+      senderName: 'Source Build Security Team'
+    };
+
+    const result = await sendEmail(emailData, 'account-blocked.ejs');
+    logger.info('Account blocked email sent successfully', { email, name });
+    
+    return result;
+  } catch (error) {
+    logger.error('Failed to send account blocked email', { error, email });
+    throw new Error('Failed to send account blocked email');
+  }
+};
+
+/**
+ * Send account unblocked notification email
+ */
+export const sendAccountUnblockedEmail = async (
+  email: string, 
+  name: string,
+  accountType: string
+): Promise<any> => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const emailData = {
+      email,
+      subject: 'Good News: Your Source Build Account is Active Again!',
+      name: name || email.split('@')[0],
+      accountType: accountType || 'User',
+      date: currentDate,
+      dashboardUrl: `${config.FRONTEND_URL}/dashboard`,
+      supportEmail: 'support@sourcebuild.com',
+      privacyUrl: `${config.FRONTEND_URL}/privacy`,
+      termsUrl: `${config.FRONTEND_URL}/terms`,
+      year: currentYear,
+      sender: 'mohdazimindiit@gmail.com',
+      senderName: 'Source Build Team'
+    };
+
+    const result = await sendEmail(emailData, 'account-unblocked.ejs');
+    logger.info('Account unblocked email sent successfully', { email, name });
+    
+    return result;
+  } catch (error) {
+    logger.error('Failed to send account unblocked email', { error, email });
+    throw new Error('Failed to send account unblocked email');
+  }
+};
+
+/**
+ * Send account deleted notification email
+ */
+export const sendAccountDeletedEmail = async (
+  email: string, 
+  name: string,
+  accountType: string,
+  reason?: string
+): Promise<any> => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const emailData = {
+      email,
+      subject: 'Source Build Account Deletion Confirmation',
+      name: name || email.split('@')[0],
+      accountType: accountType || 'User',
+      date: currentDate,
+      reason: reason || 'Account deletion requested',
+      supportEmail: 'support@sourcebuild.com',
+      privacyUrl: `${config.FRONTEND_URL}/privacy`,
+      termsUrl: `${config.FRONTEND_URL}/terms`,
+      year: currentYear,
+      sender: 'mohdazimindiit@gmail.com',
+      senderName: 'Source Build Team'
+    };
+
+    const result = await sendEmail(emailData, 'account-deleted.ejs');
+    logger.info('Account deleted email sent successfully', { email, name });
+    
+    return result;
+  } catch (error) {
+    logger.error('Failed to send account deleted email', { error, email });
+    throw new Error('Failed to send account deleted email');
+  }
+};
+
 export default {
   sendEmail,
   sendBrevoEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendAccountBlockedEmail,
+  sendAccountUnblockedEmail,
+  sendAccountDeletedEmail,
 };
