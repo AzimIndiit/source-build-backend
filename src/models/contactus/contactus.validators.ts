@@ -22,6 +22,7 @@ export const createContactUsSchema = z.object({
       .trim()
       .email('Please enter a valid email')
       .max(100, 'Email must not exceed 100 characters'),
+    phone: z.string().min(10, 'Phone number must be at least 10 digits'),
     message: z
       .string()
       .trim()
@@ -63,6 +64,7 @@ export const contactUsFilterSchema = z.object({
   query: z.object({
     status: z.nativeEnum(ContactUsStatus).optional(),
     email: z.string().email('Invalid email format').optional(),
+    phone: z.string().optional(),
     search: z.string().optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),

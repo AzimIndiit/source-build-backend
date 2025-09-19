@@ -32,6 +32,12 @@ const ContactUsSchema = new Schema<IContactUs, IContactUsModel, IContactUsMethod
       maxlength: [100, 'Email must not exceed 100 characters'],
       match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
     },
+    phone: {
+      type: String,
+      required: [true, 'Phone is required'],
+      trim: true,
+      maxlength: [10, 'Phone must not exceed 10 characters'],
+    },
     message: {
       type: String,
       required: [true, 'Message is required'],

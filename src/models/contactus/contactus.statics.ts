@@ -194,6 +194,7 @@ export const contactUsStatics = {
         { email: new RegExp(query, 'i') },
         { message: new RegExp(query, 'i') },
         { notes: new RegExp(query, 'i') },
+        { phone: new RegExp(query, 'i') },
       ],
     })
       .populate('resolvedBy', 'firstName lastName email')
