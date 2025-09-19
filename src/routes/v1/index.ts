@@ -20,6 +20,8 @@ import reviewRoutes from './review.routes.js';
 import checkoutRoutes from './checkout.routes.js';
 import quoteRoutes from './quote.routes.js';
 import cartRoutes from './cart.routes.js';
+import categoryRoutes from './category.routes.js';
+import subcategoryRoutes from './subcategory.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -61,6 +63,8 @@ router.use('/reviews', reviewRoutes);
 router.use('/checkout', checkoutRoutes);
 router.use('/quotes', quoteRoutes);
 router.use('/cart', cartRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/subcategories', subcategoryRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);
