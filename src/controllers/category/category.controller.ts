@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import slugify from '@sindresorhus/slugify'
 import { Category } from '../../models/category'
 import {
   createCategorySchema,
@@ -48,8 +49,10 @@ export const getCategories = catchAsync(async (req: Request, res: Response) => {
     query.$or = [{ name: new RegExp(search, 'i') }, { description: new RegExp(search, 'i') }]
   }
 
-  if (typeof isActive === 'boolean') {
-    query.isActive = isActive
+  if (isActive === 'true') {
+    query.isActive = true
+  } else if (isActive === 'false') {
+    query.isActive = false
   }
 
   // Calculate pagination
@@ -116,8 +119,10 @@ export const updateCategory = catchAsync(async (req: Request, res: Response) => 
   if (!category) {
     throw ApiError.notFound('Category not found')
   }
-
-  // If updating name, check for duplicates
+  const newSlug = slugify(validatedData.name)
+  // Prepare update data
+  const updateData: any = { ...validatedData, slug: newSlug }
+  // If updating name, check for duplicates and generate new slug
   if (validatedData.name && validatedData.name !== category.name) {
     const existingCategory = await Category.findOne({
       name: new RegExp(`^${validatedData.name}$`, 'i'),
@@ -130,7 +135,7 @@ export const updateCategory = catchAsync(async (req: Request, res: Response) => 
   }
 
   // Update category
-  const updatedCategory = await Category.findByIdAndUpdate(id, validatedData, {
+  const updatedCategory = await Category.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   })
@@ -177,4 +182,47 @@ export const toggleCategoryStatus = catchAsync(async (req: Request, res: Respons
     category,
     `Category ${category.isActive ? 'activated' : 'deactivated'} successfully`
   )
+})
+
+export const getAvailableCategories = catchAsync(async (req: Request, res: Response) => {
+  const { Product } = await import('../../models/product')
+  const { Subcategory } = await import('../../models/subcategory')
+  
+  // Find all active products and get unique category and subcategory IDs
+  const activeProducts = await Product.find({ status: "active" })
+  
+  if (activeProducts.length === 0) {
+    return ApiResponse.success(res, [], 'No available categories')
+  }
+  
+  // Get unique category IDs from products
+  const uniqueCategoryIds = [...new Set(activeProducts.map(p => p.category?.toString()).filter(Boolean))]
+  
+  // Get unique subcategory IDs from products
+  const uniqueSubcategoryIds = [...new Set(activeProducts.map(p => p.subCategory?.toString()).filter(Boolean))]
+  
+  // Get active categories that have active products
+  const categories = await Category.find({
+    _id: { $in: uniqueCategoryIds },
+    isActive: true
+  }).sort({ order: 1, name: 1 }).lean()
+  
+  // Get active subcategories that have active products
+  const subcategories = await Subcategory.find({
+    _id: { $in: uniqueSubcategoryIds },
+    isActive: true
+  }).sort({ order: 1, name: 1 }).lean()
+  
+  // Group subcategories by category and attach to categories
+  const categoriesWithSubcategories = categories.map(category => {
+    const categorySubcategories = subcategories.filter(
+      sub => sub.category?.toString() === category._id.toString()
+    )
+    return {
+      ...category,
+      subcategories: categorySubcategories
+    }
+  })
+  
+  return ApiResponse.success(res, categoriesWithSubcategories, 'Available categories retrieved successfully')
 })

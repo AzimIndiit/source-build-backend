@@ -136,6 +136,8 @@ export const createProductDraftSchema = z.object({
   marketplaceOptions: marketplaceOptionsSchema.optional(),
   pickupHours: pickupHoursSchema,
   shippingPrice: z.number().optional(),
+  deliveryDistance: z.number().optional(), // Distance in miles, optional
+  localDeliveryFree: z.boolean().optional(),
   readyByDate: z.string().datetime().optional().or(z.date().optional()),
   readyByTime: z.string().optional(),
   readyByDays: z.number().min(0).max(60).optional(),
@@ -208,6 +210,8 @@ export const createProductSchema = z
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
     marketplaceOptions: marketplaceOptionsSchema.required(),
     pickupHours: pickupHoursSchema,
+    deliveryDistance: z.number().optional(),
+    localDeliveryFree: z.boolean().optional(),
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
@@ -338,6 +342,8 @@ export const updateProductSchema = z
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
     marketplaceOptions: marketplaceOptionsSchema.optional(),
     pickupHours: pickupHoursSchema,
+    deliveryDistance: z.number().optional(),
+    localDeliveryFree: z.boolean().optional(),
     shippingPrice: z.number().min(0, 'Shipping price must be positive').optional(),
     readyByDate: z.string().datetime().optional().or(z.date().optional()),
     readyByTime: z.string().optional(),
@@ -381,8 +387,8 @@ export const deleteProductSchema = z.object({
 })
 
 export const getProductsSchema = z.object({
-  category:z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID').optional(),
-  subCategory: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID').optional(),
+  category:z.string().optional(),
+  subCategory: z.string().optional(),
   minPrice: z.string().transform(Number).pipe(z.number().min(0)).optional(),
   maxPrice: z.string().transform(Number).pipe(z.number().min(0)).optional(),
   brand: z.string().optional(),

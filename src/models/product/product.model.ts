@@ -152,6 +152,15 @@ const productSchema = new Schema<IProduct, IProductModel>(
       type: Number,
       min: [0, 'Shipping price must be positive'],
     },
+    deliveryDistance: {
+      type: Number,
+      min: [0, 'Delivery distance must be positive'],
+      default: undefined
+    },
+    localDeliveryFree: {
+      type: Boolean,
+      default: false,
+    },
     readyByDate: {
       type: Date,
       default: undefined,

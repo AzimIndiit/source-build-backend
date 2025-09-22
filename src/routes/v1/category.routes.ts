@@ -6,7 +6,8 @@ import {
   getCategoryBySlug,
   updateCategory,
   deleteCategory,
-  toggleCategoryStatus
+  toggleCategoryStatus,
+  getAvailableCategories
 } from '../../controllers/category/category.controller';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { UserRole } from '@/models/user/user.types';
@@ -15,6 +16,7 @@ const router = Router();
 
 // Public routes
 router.get('/', getCategories);
+router.get('/available', getAvailableCategories);
 router.get('/slug/:slug', getCategoryBySlug);
 router.get('/:id', getCategoryById);
 

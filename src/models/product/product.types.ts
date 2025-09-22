@@ -40,6 +40,7 @@ export interface IMarketplaceOptions {
   pickup?: boolean;
   shipping?: boolean;
   delivery?: boolean;
+  deliveryDistance?: number; // Distance in miles/km for local delivery
 }
 
 export interface IProductLocation {

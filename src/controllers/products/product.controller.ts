@@ -12,6 +12,8 @@ import {
   createProductSchema,
   createProductDraftSchema,
 } from '@models/product/product.validators.js'
+import { Category } from '@models/category/index.js'
+import { Subcategory } from '@models/subcategory/index.js'
 
 export const createProductDraft = [
   validate(createProductDraftSchema),
@@ -126,9 +128,36 @@ export const getProducts = [
       }
     }
 
-    // ✅ Category, brand, seller, etc. (still supported)
-    if (query['category']) filter.category = query['category']
-    if (query['subCategory']) filter.subCategory = query['subCategory']
+    // ✅ Category filtering - handle slug or ID
+    if (query['category']) {
+      // Check if it's a slug (contains letters) or an ID (valid ObjectId)
+      const categoryValue = String(query['category'])
+      if (Types.ObjectId.isValid(categoryValue)) {
+        // It's an ID, use directly
+        filter.category = categoryValue
+      } else {
+        // It's a slug, find the category by slug
+        const category = await Category.findOne({ slug: categoryValue })
+        if (category) {
+          filter.category = category._id
+        }
+      }
+    }
+    
+    // ✅ SubCategory filtering - handle slug or ID
+    if (query['subCategory']) {
+      const subCategoryValue = String(query['subCategory'])
+      if (Types.ObjectId.isValid(subCategoryValue)) {
+        // It's an ID, use directly
+        filter.subCategory = subCategoryValue
+      } else {
+        // It's a slug, find the subcategory by slug
+        const subcategory = await Subcategory.findOne({ slug: subCategoryValue })
+        if (subcategory) {
+          filter.subCategory = subcategory._id
+        }
+      }
+    }
     if (query['brand']) filter.brand = query['brand']
     if (query['color']) filter.color = query['color']
     if (query['seller']) filter.seller = query['seller']
@@ -190,10 +219,10 @@ export const getProducts = [
       const readyTime = Array.isArray(readyTimeParam) ? readyTimeParam : [readyTimeParam]
 
       if (readyTime.includes('next-day')) {
-        filter.readyBy = { $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+        filter.readyByDays = 2
       }
       if (readyTime.includes('this-week')) {
-        filter.readyBy = { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+        filter.readyByDays = 7
       }
     }
 

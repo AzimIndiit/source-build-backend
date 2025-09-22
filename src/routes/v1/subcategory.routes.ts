@@ -7,7 +7,8 @@ import {
   getSubcategoriesByCategory,
   updateSubcategory,
   deleteSubcategory,
-  toggleSubcategoryStatus
+  toggleSubcategoryStatus,
+  getAvailableSubcategories
 } from '../../controllers/subcategory/subcategory.controller';
 import { authenticate, authorize } from '../../middlewares/auth.middleware';
 import { UserRole } from '@/models/user/user.types';
@@ -16,6 +17,7 @@ const router = Router();
 
 // Public routes
 router.get('/', getSubcategories);
+router.get('/available', getAvailableSubcategories);
 router.get('/slug/:slug', getSubcategoryBySlug);
 router.get('/category/:categoryId', getSubcategoriesByCategory);
 router.get('/:id', getSubcategoryById);

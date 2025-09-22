@@ -45,7 +45,7 @@ export const getCategoriesSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().optional(),
-  isActive: z.boolean().optional(),
+  isActive: z.string().optional(),
   sortBy: z.enum(['name', 'createdAt', 'order']).default('order'),
   sortOrder: z.enum(['asc', 'desc']).default('asc')
 });

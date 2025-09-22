@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import slugify from '@sindresorhus/slugify'
 import { Subcategory } from '../../models/subcategory'
 import { Category } from '../../models/category'
 import {
@@ -12,6 +13,7 @@ import {
 import ApiError from '../../utils/ApiError'
 import ApiResponse from '../../utils/ApiResponse'
 import catchAsync from '../../utils/catchAsync'
+import mongoose from 'mongoose'
 
 export const createSubcategory = catchAsync(async (req: Request, res: Response) => {
   const validatedData = createSubcategorySchema.parse(req.body) as CreateSubcategoryInput
@@ -149,6 +151,9 @@ export const updateSubcategory = catchAsync(async (req: Request, res: Response) 
   if (!subcategory) {
     throw ApiError.notFound('Subcategory not found')
   }
+  const newSlug = slugify(validatedData.name)
+  // Prepare update data
+  const updateData: any = { ...validatedData, slug: newSlug }
 
   // If updating category, check if new category exists
   if (validatedData.category) {
@@ -158,7 +163,7 @@ export const updateSubcategory = catchAsync(async (req: Request, res: Response) 
     }
   }
 
-  // If updating name, check for duplicates in the same category
+  // If updating name, check for duplicates in the same category and generate new slug
   if (validatedData.name && validatedData.name !== subcategory.name) {
     const categoryId = validatedData.category || subcategory.category
     const existingSubcategory = await Subcategory.findOne({
@@ -170,10 +175,11 @@ export const updateSubcategory = catchAsync(async (req: Request, res: Response) 
     if (existingSubcategory) {
       throw ApiError.conflict('Subcategory with this name already exists in this category')
     }
+
   }
 
   // Update subcategory
-  const updatedSubcategory = await Subcategory.findByIdAndUpdate(id, validatedData, {
+  const updatedSubcategory = await Subcategory.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   }).populate('category')
@@ -213,4 +219,39 @@ export const toggleSubcategoryStatus = catchAsync(async (req: Request, res: Resp
     subcategory,
     `Subcategory ${subcategory.isActive ? 'activated' : 'deactivated'} successfully`
   )
+})
+
+export const getAvailableSubcategories = catchAsync(async (req: Request, res: Response) => {
+  const { categoryId } = req.query as { categoryId?: string }
+  const { Product } = await import('../../models/product')
+  
+  // Build query for products
+  const productQuery: any = { status: "active" }
+  if (categoryId) {
+    productQuery.category =  new mongoose.Types.ObjectId(categoryId)
+  }
+  console.log('productQuery', productQuery)
+  
+  // Find all active products and get unique subcategory IDs
+  const activeProducts = await Product.find(productQuery).distinct('subCategory')
+  
+  if (activeProducts.length === 0) {
+    return ApiResponse.success(res, [], 'No available subcategories')
+  }
+  
+  // Get active subcategories that have active products
+  const subcategoryQuery: any = {
+    _id: { $in: activeProducts },
+    isActive: true
+  }
+  
+  if (categoryId) {
+    subcategoryQuery.category = categoryId
+  }
+  
+  const subcategories = await Subcategory.find(subcategoryQuery)
+    .populate('category', 'name slug')
+    .sort({ order: 1, name: 1 })
+  
+  return ApiResponse.success(res, subcategories, 'Available subcategories retrieved successfully')
 })
