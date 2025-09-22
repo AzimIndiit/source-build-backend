@@ -33,11 +33,14 @@ export const createProductDraft = [
       
       // Update all fields except variants
       Object.assign(product, otherProductData)
-      
-      // Replace variants array completely if provided
+      console.log('variants', variants)
+      // Replace variants array completely if provided (including empty array to remove all variants)
       if (variants !== undefined) {
         console.log('DRAFT UPDATE - Replacing variants with:', variants)
         product.variants = variants
+      } else {
+        // If variants is not provided, keep existing variants (don't modify them)
+        console.log('DRAFT UPDATE - Variants not provided, keeping existing variants')
       }
       
       product.status = ProductStatus.DRAFT
@@ -379,6 +382,9 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
   if (variants !== undefined) {
     console.log('UPDATE PRODUCT - Replacing variants with:', variants)
     product.variants = variants as any
+  } else {
+    // If variants is not provided, keep existing variants (don't modify them)
+    console.log('UPDATE PRODUCT - Variants not provided, keeping existing variants')
   }
   
   product.status = ProductStatus.ACTIVE
