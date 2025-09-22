@@ -39,8 +39,9 @@ export const createProductDraft = [
         console.log('DRAFT UPDATE - Replacing variants with:', variants)
         product.variants = variants
       } else {
-        // If variants is not provided, keep existing variants (don't modify them)
-        console.log('DRAFT UPDATE - Variants not provided, keeping existing variants')
+        // If variants is not provided, remove all existing variants
+        console.log('DRAFT UPDATE - Variants not provided, removing all existing variants')
+        product.variants = []
       }
       
       product.status = ProductStatus.DRAFT
@@ -383,8 +384,9 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
     console.log('UPDATE PRODUCT - Replacing variants with:', variants)
     product.variants = variants as any
   } else {
-    // If variants is not provided, keep existing variants (don't modify them)
-    console.log('UPDATE PRODUCT - Variants not provided, keeping existing variants')
+    // If variants is not provided, remove all existing variants
+    console.log('UPDATE PRODUCT - Variants not provided, removing all existing variants')
+    product.variants = []
   }
   
   product.status = ProductStatus.ACTIVE
