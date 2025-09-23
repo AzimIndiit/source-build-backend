@@ -31,6 +31,7 @@ export interface IVariant {
   quantity: number;
   outOfStock: boolean;
   price: number;
+  priceType?: 'sqft' | 'linear' | 'pallet';
   discount?: IDiscount;
   images?: string[];
 }
@@ -39,6 +40,7 @@ export interface IMarketplaceOptions {
   pickup?: boolean;
   shipping?: boolean;
   delivery?: boolean;
+  deliveryDistance?: number; // Distance in miles/km for local delivery
 }
 
 export interface IProductLocation {
@@ -76,6 +78,7 @@ export interface IProductBase {
   title: string;
   slug: string;
   price: number;
+  priceType?: 'sqft' | 'linear' | 'pallet';
   description: string;
   category: string;
   subCategory: string;
@@ -140,6 +143,7 @@ export interface IProductModel extends Model<IProduct, {}, IProductMethods>, IPr
 export interface CreateProductDTO {
   title: string;
   price: number;
+  priceType?: 'sqft' | 'linear' | 'pallet';
   description: string;
   category: string;
   subCategory: string;
@@ -166,6 +170,7 @@ export interface CreateProductDTO {
 export interface UpdateProductDTO {
   title?: string;
   price?: number;
+  priceType?: 'sqft' | 'linear' | 'pallet';
   description?: string;
   category?: string;
   subCategory?: string;

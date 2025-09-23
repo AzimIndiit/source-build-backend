@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You for Contacting Source Build</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .message-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 5px;
+        }
+        .message-box h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .message-content {
+            color: #555;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .info-section {
+            background-color: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .info-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #d1e9f0;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #2c3e50;
+            display: inline-block;
+            width: 120px;
+        }
+        .info-value {
+            color: #555;
+        }
+        .response-time {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .social-links {
+            margin-top: 20px;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #667eea;
+        }
+        .reference-number {
+            background-color: #e7f3ff;
+            border: 1px dashed #667eea;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .reference-number strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Thank You for Contacting Us!</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.95;">We've received your message</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Hi <%= firstName %>,
+            </div>
+
+            <p>Thank you for reaching out to Source Build! We appreciate you taking the time to contact us.</p>
+
+            <div class="reference-number">
+                <p style="margin: 5px 0;">Your Reference Number:</p>
+                <strong><%= referenceNumber %></strong>
+                <p style="margin: 5px 0; font-size: 12px; color: #666;">Please save this for your records</p>
+            </div>
+
+            <!-- Message Summary -->
+            <div class="info-section">
+                <h3>Your Contact Information</h3>
+                <div class="info-item">
+                    <span class="info-label">Name:</span>
+                    <span class="info-value"><%= firstName %> <%= lastName %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value"><%= email %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value"><%= phone %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Submitted On:</span>
+                    <span class="info-value"><%= submissionDate %></span>
+                </div>
+            </div>
+
+            <!-- Message Content -->
+            <div class="message-box">
+                <h3>Your Message:</h3>
+                <div class="message-content"><%= message %></div>
+            </div>
+
+            <!-- Response Time -->
+            <div class="response-time">
+                <strong>What happens next?</strong>
+                <p style="margin: 10px 0 0 0;">Our support team will review your message and get back to you within 24-48 business hours. If your inquiry is urgent, please don't hesitate to follow up with us.</p>
+            </div>
+
+            <p style="color: #666; margin-top: 25px;">
+                In the meantime, you might find answers to your questions in our:
+            </p>
+            <ul style="color: #666;">
+                <li><a href="<%= faqUrl %>" style="color: #667eea;">Frequently Asked Questions</a></li>
+                <li><a href="<%= helpCenterUrl %>" style="color: #667eea;">Help Center</a></li>
+                <li><a href="<%= termsUrl %>" style="color: #667eea;">Terms of Service</a></li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Need immediate assistance?</p>
+            <p>Email us directly at: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a></p>
+            
+            <div class="social-links">
+                <a href="#">Facebook</a>
+                <a href="#">Twitter</a>
+                <a href="#">LinkedIn</a>
+                <a href="#">Instagram</a>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                © <%= year %> Source Build. All rights reserved.
+            </p>
+            <p style="font-size: 12px; color: #999;">
+                <a href="<%= privacyUrl %>" style="color: #999;">Privacy Policy</a> | 
+                <a href="<%= termsUrl %>" style="color: #999;">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

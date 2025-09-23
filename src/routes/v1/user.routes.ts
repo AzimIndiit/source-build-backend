@@ -1,13 +1,19 @@
-import { Router } from 'express';
-import { authenticate, authorize } from '@middlewares/auth.middleware.js';
-import userController from '@controllers/user.controller.js';
-import { UserRole } from '@/models/user/user.types';
-import { createCard, deleteCard, getSavedCards, setDefaultCard } from '@/controllers/userCard.controller';
-import { createCardSchema, updateCardSchema } from '@/models/user-card/userCard.validators';
-import { validate } from '@middlewares/validation.middleware.js';
+import { Router } from 'express'
+import { authenticate, authorize } from '@middlewares/auth.middleware.js'
+import userController from '@/controllers/users/user.controller.js'
+import { UserRole } from '@/models/user/user.types'
+import {
+  createCard,
+  deleteCard,
+  getSavedCards,
+  setDefaultCard,
+} from '@/controllers/userCard.controller'
+import { createCardSchema, updateCardSchema } from '@/models/user-card/userCard.validators'
+import { validate } from '@middlewares/validation.middleware.js'
+import { userFilterSchema } from '@/models/user/user.validators'
 
-const router = Router();
-router.use(authenticate);
+const router = Router()
+router.use(authenticate)
 /**
  * @swagger
  * /api/v1/user/profile:
@@ -65,7 +71,7 @@ router.use(authenticate);
  *       400:
  *         description: Bad request
  */
-router.put('/profile', authenticate, userController.updateProfile);
+router.put('/profile', authenticate, userController.updateProfile)
 
 /**
  * @swagger
@@ -93,7 +99,54 @@ router.put('/profile', authenticate, userController.updateProfile);
  *       401:
  *         description: Unauthorized
  */
-router.get('/profile', authenticate, userController.getProfile);
+router.get('/profile', authenticate, userController.getProfile)
+
+/**
+ * @swagger
+ * /api/v1/user/switch-role:
+ *   put:
+ *     summary: Switch user role between buyer and seller
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [buyer, seller]
+ *                 description: The role to switch to
+ *     responses:
+ *       200:
+ *         description: Role switched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *       400:
+ *         description: Invalid role or user already has the role
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin and driver users cannot switch roles
+ */
+router.put('/switch-role', authenticate, userController.switchRole)
 
 /**
  * @swagger
@@ -121,8 +174,7 @@ router.get('/profile', authenticate, userController.getProfile);
  *       400:
  *         description: Invalid location ID
  */
-router.put('/current-location', authenticate, userController.updateCurrentLocation);
-
+router.put('/current-location', authenticate, userController.updateCurrentLocation)
 
 /**
  * @swagger
@@ -216,7 +268,7 @@ router.put('/current-location', authenticate, userController.updateCurrentLocati
  *       403:
  *         description: Forbidden - Buyer role required
  */
-router.post('/cards',  authorize(UserRole.BUYER) ,validate(createCardSchema,'body'), createCard);
+router.post('/cards', authorize(UserRole.BUYER), validate(createCardSchema, 'body'), createCard)
 
 /**
  * @swagger
@@ -265,7 +317,7 @@ router.post('/cards',  authorize(UserRole.BUYER) ,validate(createCardSchema,'bod
  *       403:
  *         description: Forbidden - Buyer role required
  */
-router.get('/cards',  authorize(UserRole.BUYER), getSavedCards);
+router.get('/cards', authorize(UserRole.BUYER), getSavedCards)
 
 /**
  * @swagger
@@ -321,7 +373,7 @@ router.get('/cards',  authorize(UserRole.BUYER), getSavedCards);
  *       404:
  *         description: Card not found
  */
-router.put('/cards/:id/default',  authorize(UserRole.BUYER), setDefaultCard);
+router.put('/cards/:id/default', authorize(UserRole.BUYER), setDefaultCard)
 
 /**
  * @swagger
@@ -362,6 +414,20 @@ router.put('/cards/:id/default',  authorize(UserRole.BUYER), setDefaultCard);
  *       404:
  *         description: Card not found
  */
-router.delete('/cards/:id',   authorize(UserRole.BUYER),deleteCard);
+router.delete('/cards/:id', authorize(UserRole.BUYER), deleteCard)
 
-export default router;
+router.get(
+  '/',
+  authorize(UserRole.ADMIN),
+  validate(userFilterSchema, 'query'),
+  userController.getUsers
+)
+
+// User management routes (Admin only)
+router.get('/:userId', authorize(UserRole.ADMIN), userController.getUserById)
+router.put('/:userId/block', authorize(UserRole.ADMIN), userController.blockUser)
+router.put('/:userId/unblock', authorize(UserRole.ADMIN), userController.unblockUser)
+router.delete('/:userId', authorize(UserRole.ADMIN), userController.deleteUser)
+router.put('/:userId/restore', authorize(UserRole.ADMIN), userController.restoreUser)
+
+export default router

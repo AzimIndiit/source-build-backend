@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { authenticate, authorize } from '../middlewares/auth.middleware.js'
-import { UserRole } from '../models/user/user.types.js'
+import { authenticate, authorize } from '../../middlewares/auth.middleware.js'
+import { UserRole } from '../../models/user/user.types.js'
 import {
   createQuoteRequest,
   getQuotes,
@@ -9,7 +9,7 @@ import {
   provideQuoteResponse,
   deleteQuote,
   getQuoteStatistics
-} from '../controllers/quotes/quote.controller.js'
+} from '../../controllers/quotes/quote.controller.js'
 
 const router = Router()
 

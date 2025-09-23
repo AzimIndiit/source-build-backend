@@ -10,7 +10,7 @@ import config from '@/config/index.js';
 export const getPublicConfig = catchAsync(async (req: Request, res: Response) => {
   const publicConfig = {
     stripe: {
-      publishableKey: config.STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY,
+      publishableKey: config.stripe?.publishableKey || process.env.STRIPE_PUBLISHABLE_KEY,
       apiVersion: '2023-10-16', // Stripe API version
     },
     environment: config.NODE_ENV,

@@ -5,6 +5,18 @@ import {
   AddressType, 
 } from './user.types.js';
 
+export const userFilterSchema = z.object({
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+  search: z.string().optional(),
+  role: z.string().optional(),
+  status: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  sort: z.string().optional(),
+  userId: z.string().optional(),
+});
+
 /**
  * Phone number validation helper (accepts formatted or unformatted)
  */
@@ -194,7 +206,7 @@ const sellerRegistrationSchema = baseRegistrationSchema.extend({
 }).refine(
   (data) => {
     // salesTaxId is required only when localDelivery is 'no'
-    if (data.localDelivery === 'no' || data.localDelivery === false) {
+    if (data.localDelivery === false) { // localDelivery is a boolean
       return data.salesTaxId && data.salesTaxId.length > 0;
     }
     return true;
@@ -367,6 +379,7 @@ export const loginUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().optional().default(false),
+  role: z.nativeEnum(UserRole).optional(),
 });
 
 /**
@@ -434,3 +447,4 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type AddressInput = z.infer<typeof addressSchema>
+export type UserFilterInput = z.infer<typeof userFilterSchema>;

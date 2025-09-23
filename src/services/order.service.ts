@@ -155,11 +155,36 @@ class OrderService {
         if (filters.maxAmount) query.amount.$lte = filters.maxAmount;
       }
 
+      // Enhanced search functionality
       if (filters.search) {
+        const searchRegex = { $regex: filters.search, $options: 'i' };
+        
+        // First, search for users by name or email
+        const users = await UserModal.find({
+          $or: [
+            { displayName: searchRegex },
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { email: searchRegex }
+          ]
+        }).select('_id');
+        
+        const userIds = users.map(user => user._id);
+        
+        // Build search query to include order number, product titles, and user names
         query.$or = [
-          { orderNumber: { $regex: filters.search, $options: 'i' } },
-          { 'products.title': { $regex: filters.search, $options: 'i' } },
+          { orderNumber: searchRegex },
+          { 'products.title': searchRegex },
         ];
+        
+        // Add user-based searches if any users were found
+        if (userIds.length > 0) {
+          query.$or.push(
+            { 'customer.userRef': { $in: userIds } },
+            { 'seller.userRef': { $in: userIds } },
+            { 'driver.userRef': { $in: userIds } }
+          );
+        }
       }
 
       if (userRole === 'buyer' && userId) {
@@ -186,13 +211,14 @@ class OrderService {
         sort.createdAt = -1;
       }
       // Debug logging for query construction
-      logger.debug('MongoDB query constructed:', {
-        driver: query['driver.userRef'],
-        createdAt: query.createdAt,
-        status: query.status,
-        seller: query['seller.userRef'],
-        customer: query['customer.userRef']
-      });
+      // logger.debug('MongoDB query constructed:', {
+      //   driver: query['driver.userRef'],
+      //   createdAt: query.createdAt,
+      //   status: query.status,
+      //   seller: query['seller.userRef'],
+      //   customer: query['customer.userRef']
+      // });
+
       
       const [orders, total] = await Promise.all([
         OrderModal.find(query)
@@ -256,6 +282,25 @@ class OrderService {
       return order;
     } catch (error) {
       logger.error('Error fetching order:', error);
+      throw error;
+    }
+  }
+
+  async getOrderByNumber(orderNumber: string): Promise<IOrder> {
+    try {
+      const order = await OrderModal.findOne({ orderNumber })
+        .populate('customer.userRef', 'displayName email phone avatar')
+        .populate('driver.userRef', 'displayName email phone avatar')
+        .populate('seller.userRef', 'displayName email phone avatar')
+        .populate('products.productRef', 'title price images slug');
+      
+      if (!order) {
+        throw ApiError.notFound('Order not found');
+      }
+      
+      return order;
+    } catch (error) {
+      logger.error('Error fetching order by number:', error);
       throw error;
     }
   }

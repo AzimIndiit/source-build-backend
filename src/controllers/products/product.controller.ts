@@ -12,6 +12,8 @@ import {
   createProductSchema,
   createProductDraftSchema,
 } from '@models/product/product.validators.js'
+import { Category } from '@models/category/index.js'
+import { Subcategory } from '@models/subcategory/index.js'
 
 export const createProductDraft = [
   validate(createProductDraftSchema),
@@ -24,9 +26,30 @@ export const createProductDraft = [
       if (!product) {
         throw ApiError.notFound('Product not found')
       }
-      Object.assign(product, productData)
+      
+      // Handle variants separately to ensure proper replacement
+      const { variants, ...otherProductData } = productData
+      
+      console.log('DRAFT UPDATE - Incoming variants:', variants)
+      console.log('DRAFT UPDATE - Current product variants:', product.variants)
+      
+      // Update all fields except variants
+      Object.assign(product, otherProductData)
+      console.log('variants', variants)
+      // Replace variants array completely if provided (including empty array to remove all variants)
+      if (variants !== undefined) {
+        console.log('DRAFT UPDATE - Replacing variants with:', variants)
+        product.variants = variants
+      } else {
+        // If variants is not provided, remove all existing variants
+        console.log('DRAFT UPDATE - Variants not provided, removing all existing variants')
+        product.variants = []
+      }
+      
       product.status = ProductStatus.DRAFT
       await product.save()
+      
+      console.log('DRAFT UPDATE - After save, variants:', product.variants)
       return ApiResponse.success(res, product, 'Product draft updated successfully')
     } else {
       const product = await ProductModal.create({
@@ -53,7 +76,9 @@ export const createProduct = [
       status: ProductStatus.ACTIVE,
     })
 
-    await product.populate('seller', 'displayName email avatar profile')
+    await product
+      .populate('seller', 'displayName email avatar profile')
+
 
     return ApiResponse.created(res, product, 'Product created successfully')
   }),
@@ -64,7 +89,7 @@ export const getProducts = [
   catchAsync(async (req: Request, res: Response) => {
     const query = req.query
     const user = req.user?.id || null
-    const userRole=req?.user?.role || null
+    const userRole = req?.user?.role || null
     const page = parseInt(String(query['page'] || '1')) || 1
     const limit = parseInt(String(query['limit'] || '10')) || 10
     const skip = (page - 1) * limit
@@ -73,7 +98,7 @@ export const getProducts = [
       status: ProductStatus.ACTIVE,
     }
 
-    if (user && userRole!=='buyer') {
+    if (user && userRole !== 'buyer') {
       filter.seller = user
       delete filter.status
     }
@@ -83,7 +108,7 @@ export const getProducts = [
       const Wishlist = (await import('../../models/wishlist/wishlist.model.js')).default
       const wishlist = await Wishlist.findOne({ user })
       const isInWishlistValue = String(query['isInWishlist'])
-      
+
       if (isInWishlistValue === 'true') {
         // Show only products in wishlist
         if (wishlist && wishlist.items.length > 0) {
@@ -103,9 +128,36 @@ export const getProducts = [
       }
     }
 
-    // ✅ Category, brand, seller, etc. (still supported)
-    if (query['category']) filter.category = query['category']
-    if (query['subCategory']) filter.subCategory = query['subCategory']
+    // ✅ Category filtering - handle slug or ID
+    if (query['category']) {
+      // Check if it's a slug (contains letters) or an ID (valid ObjectId)
+      const categoryValue = String(query['category'])
+      if (Types.ObjectId.isValid(categoryValue)) {
+        // It's an ID, use directly
+        filter.category = categoryValue
+      } else {
+        // It's a slug, find the category by slug
+        const category = await Category.findOne({ slug: categoryValue })
+        if (category) {
+          filter.category = category._id
+        }
+      }
+    }
+    
+    // ✅ SubCategory filtering - handle slug or ID
+    if (query['subCategory']) {
+      const subCategoryValue = String(query['subCategory'])
+      if (Types.ObjectId.isValid(subCategoryValue)) {
+        // It's an ID, use directly
+        filter.subCategory = subCategoryValue
+      } else {
+        // It's a slug, find the subcategory by slug
+        const subcategory = await Subcategory.findOne({ slug: subCategoryValue })
+        if (subcategory) {
+          filter.subCategory = subcategory._id
+        }
+      }
+    }
     if (query['brand']) filter.brand = query['brand']
     if (query['color']) filter.color = query['color']
     if (query['seller']) filter.seller = query['seller']
@@ -167,10 +219,10 @@ export const getProducts = [
       const readyTime = Array.isArray(readyTimeParam) ? readyTimeParam : [readyTimeParam]
 
       if (readyTime.includes('next-day')) {
-        filter.readyBy = { $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+        filter.readyByDays = 2
       }
       if (readyTime.includes('this-week')) {
-        filter.readyBy = { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+        filter.readyByDays = 7
       }
     }
 
@@ -220,25 +272,29 @@ export const getProducts = [
     // --- Pricing Sorting ---
     if (query['pricing'] === 'high-to-low') sortOptions = { price: -1 }
     if (query['pricing'] === 'low-to-high') sortOptions = { price: 1 }
-console.log('filter', filter,userRole)
+    console.log('filter', filter, userRole)
     // ✅ Fetch products and available locations
     const [products, total] = await Promise.all([
       ProductModal.find(filter)
         .populate('seller', 'displayName email avatar profile')
         .populate('locationIds')
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit),
       ProductModal.countDocuments(filter),
     ])
-    
+
     // Populate wishlist status for each product
     const productsWithWishlist = await (ProductModal as any).populateWishlistStatus(products, user)
 
     // Get location IDs from the filtered products
     const locationIds = [
       ...new Set(
-        productsWithWishlist.flatMap((product: any) => product.locationIds?.map((loc: any) => loc._id?.toString()) || [])
+        productsWithWishlist.flatMap(
+          (product: any) => product.locationIds?.map((loc: any) => loc._id?.toString()) || []
+        )
       ),
     ].filter(Boolean)
 
@@ -277,16 +333,19 @@ export const getProductById = catchAsync(async (req: Request, res: Response) => 
     throw ApiError.badRequest('Invalid product ID')
   }
 
-  const product = await ProductModal.findById(id).populate(
-    'seller',
-    'displayName email avatar profile'
-  )
+  const product = await ProductModal.findById(id)
+    .populate('seller', 'displayName email avatar profile')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
 
   if (!product) {
     throw ApiError.notFound('Product not found')
   }
 
-  const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(product, userId)
+  const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(
+    product,
+    userId
+  )
 
   return ApiResponse.success(res, productWithWishlist, 'Product retrieved successfully')
 })
@@ -303,6 +362,8 @@ export const getProductBySlug = [
 
     const product = await ProductModal.findOne({ slug })
       .populate('seller', 'displayName email avatar profile')
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug')
       .populate('locationIds')
 
     if (!product) {
@@ -310,8 +371,11 @@ export const getProductBySlug = [
     }
 
     await product.incrementView()
-    
-    const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(product, userId)
+
+    const productWithWishlist = await (ProductModal as any).populateSingleWishlistStatus(
+      product,
+      userId
+    )
 
     return ApiResponse.success(res, productWithWishlist, 'Product retrieved successfully')
   }),
@@ -335,9 +399,29 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
     throw ApiError.forbidden('You are not authorized to update this product')
   }
 
-  Object.assign(product, updateData)
+  // Handle variants separately to ensure proper replacement
+  const { variants, ...otherUpdateData } = updateData
+  
+  console.log('UPDATE PRODUCT - Incoming variants:', variants)
+  console.log('UPDATE PRODUCT - Current product variants:', product.variants)
+  
+  // Update all fields except variants
+  Object.assign(product, otherUpdateData)
+  
+  // Replace variants array completely if provided (including empty array to remove all variants)
+  if (variants !== undefined) {
+    console.log('UPDATE PRODUCT - Replacing variants with:', variants)
+    product.variants = variants as any
+  } else {
+    // If variants is not provided, remove all existing variants
+    console.log('UPDATE PRODUCT - Variants not provided, removing all existing variants')
+    product.variants = []
+  }
+  
   product.status = ProductStatus.ACTIVE
   await product.save()
+  
+  console.log('UPDATE PRODUCT - After save, variants:', product.variants)
 
   await product.populate('seller', 'displayName email avatar profile')
 
@@ -450,7 +534,7 @@ export const getRelatedProducts = catchAsync(async (req: Request, res: Response)
 
   // Get the current product to find its category
   const currentProduct = await ProductModal.findById(id)
-  
+
   if (!currentProduct) {
     throw ApiError.notFound('Product not found')
   }
@@ -463,23 +547,28 @@ export const getRelatedProducts = catchAsync(async (req: Request, res: Response)
       { category: currentProduct.category, subCategory: currentProduct.subCategory }, // Same subcategory (highest priority)
       { category: currentProduct.category }, // Same category
       { productTag: { $in: currentProduct.productTag || [] } }, // Similar tags
-    ]
+    ],
   }
 
   // Fetch related products
   const relatedProducts = await ProductModal.find(filter)
     .populate('seller', 'displayName email avatar profile')
+    .populate('category', 'name slug')
+    .populate('subCategory', 'name slug')
     .populate('locationIds')
-    .sort({ 
+    .sort({
       // Sort by relevance: same subcategory first, then by rating
       subCategory: currentProduct.subCategory === '$subCategory' ? -1 : 1,
       rating: -1,
-      views: -1 
+      views: -1,
     })
     .limit(limit)
 
   // Populate wishlist status for each product
-  const productsWithWishlist = await (ProductModal as any).populateWishlistStatus(relatedProducts, userId)
+  const productsWithWishlist = await (ProductModal as any).populateWishlistStatus(
+    relatedProducts,
+    userId
+  )
 
   return ApiResponse.success(res, productsWithWishlist, 'Related products retrieved successfully')
 })

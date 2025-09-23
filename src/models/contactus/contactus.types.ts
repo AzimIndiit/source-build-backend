@@ -12,6 +12,7 @@ export interface IContactUs extends Document {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   message: string;
   status: ContactUsStatus;
   resolvedBy?: Types.ObjectId;
@@ -44,6 +45,7 @@ export interface CreateContactUsDTO {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   message: string;
 }
 

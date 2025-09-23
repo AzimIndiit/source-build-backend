@@ -57,9 +57,7 @@ export const getCart = catchAsync(async (req: Request, res: Response) => {
 
         if (item.variantId && product.variants) {
           variant = product.variants.find(
-            v => v._id?.toString() === item.variantId || 
-                v.id === item.variantId ||
-                v.color === item.variantId  // Support color as variant identifier
+            v => v.color === item.variantId  // Use color as variant identifier
           );
           
           if (variant) {
@@ -163,9 +161,7 @@ export const addToCart = catchAsync(async (req: Request, res: Response) => {
   let variant = null;
   if (variantId) {
     variant = product.variants?.find(
-      v => v._id?.toString() === variantId || 
-          v.id === variantId ||
-          v.color === variantId  // Support color as variant identifier
+      v => v.color === variantId  // Use color as variant identifier
     );
     if (!variant && variantId) {
       throw ApiError.notFound('Product variant not found');
@@ -218,7 +214,7 @@ export const addToCart = catchAsync(async (req: Request, res: Response) => {
   await cart.save();
 
   // Return populated cart
-  return getCart(req, res);
+  return getCart(req, res, next);
 });
 
 // Update cart item quantity
@@ -255,9 +251,7 @@ export const updateCartItem = catchAsync(async (req: Request, res: Response) => 
     if (product) {
       const variant = variantId && product.variants 
         ? product.variants.find(v => 
-            v?._id?.toString() === variantId || 
-            v.id === variantId ||
-            v.color === variantId  // Support color as variant identifier
+            v.color === variantId  // Use color as variant identifier
           )
         : null;
       
@@ -273,7 +267,7 @@ export const updateCartItem = catchAsync(async (req: Request, res: Response) => 
   await cart.save();
   
   // Return populated cart
-  return getCart(req, res);
+  return getCart(req, res, next);
 });
 
 // Remove item from cart
@@ -305,7 +299,7 @@ export const removeFromCart = catchAsync(async (req: Request, res: Response) => 
   await cart.save();
 
   // Return populated cart
-  return getCart(req, res);
+  return getCart(req, res, next);
 });
 
 // Clear cart

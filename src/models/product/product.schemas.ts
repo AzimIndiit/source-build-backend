@@ -41,12 +41,13 @@ export const variantSchema = new Schema<IVariant>(
   {
     color: {
       type: String,
-      required: true,
+      // required: true,
       trim: true,
       validate: {
         validator: (value: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value),
         message: 'Invalid HEX color code',
       },
+      default:''
     },
     quantity: {
       type: Number,
@@ -67,6 +68,11 @@ export const variantSchema = new Schema<IVariant>(
       required: true,
       min: 0,
       max: 999999.99,
+    },
+    priceType: {
+      type: String,
+      enum: ['sqft', 'linear', 'pallet'],
+      default: 'sqft',
     },
     discount: {
       type: discountSchema,

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deleted - Source Build</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .content h2 {
+            color: #ef4444;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        .content p {
+            margin-bottom: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+        .alert-box {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .alert-box h3 {
+            color: #dc2626;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .alert-box p {
+            margin: 10px 0;
+            color: #666;
+        }
+        .info-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .info-section h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .info-section p {
+            color: #555;
+            margin: 10px 0;
+        }
+        .data-retention {
+            background-color: #fefce8;
+            border: 1px solid #fde047;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .data-retention h4 {
+            color: #713f12;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .data-retention ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: #555;
+        }
+        .data-retention li {
+            padding: 5px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #6b7280;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+        .cta-button:hover {
+            background-color: #4b5563;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer a {
+            color: #6b7280;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account Deletion Confirmation</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Hello <%= name %>,</h2>
+            
+            <p>
+                We're writing to confirm that your Source Build account has been <strong>permanently deleted</strong> from our system.
+            </p>
+            
+            <div class="alert-box">
+                <h3>Account Details:</h3>
+                <p><strong>Email:</strong> <%= email %></p>
+                <p><strong>Account Type:</strong> <%= accountType %></p>
+                <p><strong>Deletion Date:</strong> <%= date %></p>
+                <% if (reason) { %>
+                <p><strong>Reason:</strong> <%= reason %></p>
+                <% } %>
+            </div>
+            
+            <div class="info-section">
+                <h3>What This Means:</h3>
+                <p>Your account and associated data have been removed from Source Build. This includes:</p>
+                <ul style="color: #555; margin-left: 20px;">
+                    <li>• Your profile information and settings</li>
+                    <li>• Order history and transaction records</li>
+                    <li>• Messages and communications</li>
+                    <li>• Saved preferences and favorites</li>
+                    <li>• Any active listings or services</li>
+                </ul>
+            </div>
+            
+            <div class="data-retention">
+                <h4>⚠️ Important Information About Data Retention</h4>
+                <ul>
+                    <li>• Some data may be retained for legal and compliance purposes</li>
+                    <li>• Transaction records may be kept for tax and accounting requirements</li>
+                    <li>• This deletion is permanent and cannot be reversed</li>
+                    <li>• You will need to create a new account if you wish to use Source Build in the future</li>
+                </ul>
+            </div>
+            
+            <h3>Need Help?</h3>
+            
+            <p>
+                If this deletion was not initiated by you or if you believe this was done in error, please contact our support team immediately:
+            </p>
+            
+            <div style="text-align: center;">
+                <a href="mailto:<%= supportEmail %>" class="cta-button">Contact Support</a>
+            </div>
+            
+            <p>
+                We're sorry to see you go. If you have any feedback about your experience with Source Build that you'd like to share, we'd appreciate hearing from you.
+            </p>
+            
+            <p>
+                Thank you for being part of the Source Build community.
+            </p>
+            
+            <p style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>The Source Build Team</strong>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>
+                This email was sent to <%= email %><br>
+                You received this email to confirm the deletion of your Source Build account.
+            </p>
+            
+            <p style="margin-top: 20px; font-size: 12px;">
+                This is a system-generated notification. Your account has been deleted and you will not receive further emails from Source Build unless you create a new account.
+            </p>
+            
+            <p style="margin-top: 20px;">
+                © <%= year %> Source Build. All rights reserved.<br>
+                <a href="<%= privacyUrl %>">Privacy Policy</a> | 
+                <a href="<%= termsUrl %>">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

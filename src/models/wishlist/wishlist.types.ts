@@ -10,13 +10,6 @@ export interface IWishlistItem {
   };
 }
 
-export interface IWishlist extends Document {
-  user: Types.ObjectId;
-  items: IWishlistItem[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface IWishlistMethods {
   addItem(productId: string, notificationEnabled?: boolean): Promise<void>;
   removeItem(productId: string): Promise<void>;
@@ -24,6 +17,13 @@ export interface IWishlistMethods {
   clearWishlist(): Promise<void>;
   setPriceAlert(productId: string, targetPrice: number): Promise<void>;
   removePriceAlert(productId: string): Promise<void>;
+}
+
+export interface IWishlist extends Document, IWishlistMethods {
+  user: Types.ObjectId;
+  items: IWishlistItem[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IWishlistModel extends Model<IWishlist, {}, IWishlistMethods> {
