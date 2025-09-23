@@ -103,6 +103,53 @@ router.get('/profile', authenticate, userController.getProfile)
 
 /**
  * @swagger
+ * /api/v1/user/switch-role:
+ *   put:
+ *     summary: Switch user role between buyer and seller
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [buyer, seller]
+ *                 description: The role to switch to
+ *     responses:
+ *       200:
+ *         description: Role switched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *       400:
+ *         description: Invalid role or user already has the role
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin and driver users cannot switch roles
+ */
+router.put('/switch-role', authenticate, userController.switchRole)
+
+/**
+ * @swagger
  * /api/v1/user/current-location:
  *   put:
  *     summary: Update user's current location

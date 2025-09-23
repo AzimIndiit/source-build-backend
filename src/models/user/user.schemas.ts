@@ -113,12 +113,12 @@ export const sellerProfileSchema = new Schema<ISellerProfile>(
     },
     businessName: {
       type: String,
-      required: [true, 'Business name is required for sellers'],
+      // required: [true, 'Business name is required for sellers'],
       minlength: [2, 'Business name must be at least 2 characters'],
     },
     einNumber: {
       type: String,
-      required: [true, 'EIN number is required for sellers'],
+      // required: [true, 'EIN number is required for sellers'],
     },
     salesTaxId: {
       type: String,

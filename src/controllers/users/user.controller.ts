@@ -1,25 +1,25 @@
 // @ts-nocheck
-import { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import User from '@models/user/user.model.js';
-import { IUser } from '@models/user/user.types.js';
-import ApiError from '@utils/ApiError.js';
-import ApiResponse from '@utils/ApiResponse.js';
-import catchAsync from '@utils/catchAsync.js';
-import logger from '@config/logger.js';
-import { formatUserResponse } from '../auth/auth.controller';
-import userService from '@services/user.service.js';
-import emailService from '@services/email.service.js';
+import { Request, Response } from 'express'
+import mongoose from 'mongoose'
+import User from '@models/user/user.model.js'
+import { IUser } from '@models/user/user.types.js'
+import ApiError from '@utils/ApiError.js'
+import ApiResponse from '@utils/ApiResponse.js'
+import catchAsync from '@utils/catchAsync.js'
+import logger from '@config/logger.js'
+import { formatUserResponse } from '../auth/auth.controller'
+import userService from '@services/user.service.js'
+import emailService from '@services/email.service.js'
 
 /**
  * Update user profile
  */
 export const updateProfile = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId;
-  const user = req.user as IUser;
+  const userId = req.userId
+  const user = req.user as IUser
 
   if (!userId || !user) {
-    throw ApiError.unauthorized('User not authenticated');
+    throw ApiError.unauthorized('User not authenticated')
   }
 
   // Extract all possible update fields from request body
@@ -37,88 +37,86 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
     einNumber,
     salesTaxId,
     localDelivery,
-  } = req.body;
+  } = req.body
 
   // Build update object for direct user fields
-  const updateData: any = {};
-  const profileUpdateData: any = {};
+  const updateData: any = {}
+  const profileUpdateData: any = {}
 
   // Update direct user fields
   if (firstName !== undefined) {
-    updateData.firstName = firstName;
-    profileUpdateData.firstName = firstName;
+    updateData.firstName = firstName
+    profileUpdateData.firstName = firstName
   }
   if (lastName !== undefined) {
-    updateData.lastName = lastName;
-    profileUpdateData.lastName = lastName;
+    updateData.lastName = lastName
+    profileUpdateData.lastName = lastName
   }
-  
+
   // Build displayName if names are updated
   if (firstName !== undefined || lastName !== undefined) {
-    const newFirstName = firstName !== undefined ? firstName : user.firstName;
-    const newLastName = lastName !== undefined ? lastName : user.lastName;
-    updateData.displayName = `${newFirstName || ''} ${newLastName || ''}`.trim();
-    profileUpdateData.displayName = updateData.displayName;
+    const newFirstName = firstName !== undefined ? firstName : user.firstName
+    const newLastName = lastName !== undefined ? lastName : user.lastName
+    updateData.displayName = `${newFirstName || ''} ${newLastName || ''}`.trim()
+    profileUpdateData.displayName = updateData.displayName
   }
 
   // Common profile fields
-  if (description !== undefined) profileUpdateData.description = description;
-  if (region !== undefined) profileUpdateData.region = region;
-  if (address !== undefined) profileUpdateData.address = address;
-  if (avatar !== undefined) profileUpdateData.avatar = avatar;
-  if (phone !== undefined) profileUpdateData.phone = phone;
+  if (description !== undefined) profileUpdateData.description = description
+  if (region !== undefined) profileUpdateData.region = region
+  if (address !== undefined) profileUpdateData.address = address
+  if (avatar !== undefined) profileUpdateData.avatar = avatar
+  if (phone !== undefined) profileUpdateData.phone = phone
 
   // Role-specific fields for sellers
   if (user.role === 'seller') {
-    if (businessName !== undefined) profileUpdateData.businessName = businessName;
-    if (businessAddress !== undefined) profileUpdateData.businessAddress = businessAddress;
-    if (cellPhone !== undefined) profileUpdateData.cellPhone = cellPhone;
-    if (einNumber !== undefined) profileUpdateData.einNumber = einNumber;
-    if (salesTaxId !== undefined) profileUpdateData.salesTaxId = salesTaxId;
-    if (localDelivery !== undefined) profileUpdateData.localDelivery = localDelivery;
+    if (businessName !== undefined) profileUpdateData.businessName = businessName
+    if (businessAddress !== undefined) profileUpdateData.businessAddress = businessAddress
+    if (cellPhone !== undefined) profileUpdateData.cellPhone = cellPhone
+    if (einNumber !== undefined) profileUpdateData.einNumber = einNumber
+    if (salesTaxId !== undefined) profileUpdateData.salesTaxId = salesTaxId
+    if (localDelivery !== undefined) profileUpdateData.localDelivery = localDelivery
   }
 
   // Role-specific fields for drivers
   if (user.role === 'driver') {
-    if (phone !== undefined) profileUpdateData.phone = phone;
+    if (phone !== undefined) profileUpdateData.phone = phone
   }
 
   // Prepare the final update object
-  const finalUpdateData: any = { ...updateData };
-  
+  const finalUpdateData: any = { ...updateData }
+
   // Add profile updates with dot notation
-  Object.keys(profileUpdateData).forEach(key => {
-    finalUpdateData[`profile.${key}`] = profileUpdateData[key];
-  });
+  Object.keys(profileUpdateData).forEach((key) => {
+    finalUpdateData[`profile.${key}`] = profileUpdateData[key]
+  })
 
   // Log the update data for debugging
-  logger.info('Updating user profile', { 
-    userId, 
+  logger.info('Updating user profile', {
+    userId,
     updateFields: Object.keys(finalUpdateData),
-    updateData: finalUpdateData 
-  });
+    updateData: finalUpdateData,
+  })
 
   // Update user in database
   const updatedUser = await User.findByIdAndUpdate(
     userId,
     { $set: finalUpdateData },
-    { 
-      new: true, 
+    {
+      new: true,
       runValidators: true,
-      upsert: false 
+      upsert: false,
     }
-  ).select('-password -refreshTokens');
+  ).select('-password -refreshTokens')
 
   if (!updatedUser) {
-    throw ApiError.notFound('User not found');
+    throw ApiError.notFound('User not found')
   }
 
-  logger.info('User profile updated successfully', { 
-    userId, 
-    updatedFields: Object.keys(finalUpdateData) 
-  });
-
-
+  logger.info('User profile updated successfully', {
+    userId,
+    updatedFields: Object.keys(finalUpdateData),
+  })
 
   res.status(200).json({
     success: true,
@@ -126,18 +124,18 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
     data: {
       user: formatUserResponse(updatedUser),
     },
-  });
-});
+  })
+})
 
 /**
  * Get user profile
  */
 export const getProfile = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId;
-  const user = req.user as IUser;
+  const userId = req.userId
+  const user = req.user as IUser
 
   if (!userId || !user) {
-    throw ApiError.unauthorized('User not authenticated');
+    throw ApiError.unauthorized('User not authenticated')
   }
 
   res.status(200).json({
@@ -145,28 +143,24 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     data: {
       user: formatUserResponse(user),
     },
-  });
-});
+  })
+})
 
 /**
  * Update user's current location
  */
 export const updateCurrentLocation = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.userId;
-  const { locationId } = req.body;
+  const userId = req.userId
+  const { locationId } = req.body
 
   if (!userId) {
-    throw ApiError.unauthorized('User not authenticated');
+    throw ApiError.unauthorized('User not authenticated')
   }
 
   // Validate locationId
   if (!locationId) {
     // Clear current location if no locationId provided
-    await User.findByIdAndUpdate(
-      userId,
-      { $unset: { currentLocationId: 1 } },
-      { new: true }
-    );
+    await User.findByIdAndUpdate(userId, { $unset: { currentLocationId: 1 } }, { new: true })
 
     return res.status(200).json({
       success: true,
@@ -175,18 +169,18 @@ export const updateCurrentLocation = catchAsync(async (req: Request, res: Respon
         currentLocationId: null,
         currentLocation: null,
       },
-    });
+    })
   }
 
   // Verify the address exists and belongs to the user
-  const AddressModel = mongoose.model('Address');
-  const address = await AddressModel.findOne({ 
-    _id: locationId, 
-    userId: userId 
-  });
+  const AddressModel = mongoose.model('Address')
+  const address = await AddressModel.findOne({
+    _id: locationId,
+    userId: userId,
+  })
 
   if (!address) {
-    throw ApiError.badRequest('Invalid location ID or address does not belong to user');
+    throw ApiError.badRequest('Invalid location ID or address does not belong to user')
   }
 
   // Update user's current location
@@ -194,16 +188,16 @@ export const updateCurrentLocation = catchAsync(async (req: Request, res: Respon
     userId,
     { currentLocationId: locationId },
     { new: true }
-  ).populate('currentLocationId');
+  ).populate('currentLocationId')
 
   if (!updatedUser) {
-    throw ApiError.notFound('User not found');
+    throw ApiError.notFound('User not found')
   }
 
-  logger.info('User current location updated', { 
-    userId, 
-    locationId 
-  });
+  logger.info('User current location updated', {
+    userId,
+    locationId,
+  })
 
   res.status(200).json({
     success: true,
@@ -212,21 +206,20 @@ export const updateCurrentLocation = catchAsync(async (req: Request, res: Respon
       currentLocationId: updatedUser.currentLocationId,
       currentLocation: (updatedUser as any).currentLocationId,
     },
-  });
-});
+  })
+})
 
 /**
  * Get all users with filters
  */
 export const getUsers = [
-
   catchAsync(async (req: Request, res: Response) => {
-    const filters = req.query as any;
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    
-    const result = await userService.getUsers(filters, userId, userRole);
-    
+    const filters = req.query as any
+    const userId = req.user?.id
+    const userRole = req.user?.role
+
+    const result = await userService.getUsers(filters, userId, userRole)
+
     // Create a custom response with both pagination and stats
     return res.status(200).json({
       status: 'success',
@@ -238,110 +231,98 @@ export const getUsers = [
         pagination: result.pagination,
         stats: result.stats,
       },
-    });
-  })
-];
+    })
+  }),
+]
 
 /**
  * Get user by ID
  */
 export const getUserById = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  
-  const user = await userService.getUserById(userId);
-  
-  return ApiResponse.success(
-    res,
-    user,
-    'User retrieved successfully'
-  );
-});
+  const { userId } = req.params
+
+  const user = await userService.getUserById(userId)
+
+  return ApiResponse.success(res, user, 'User retrieved successfully')
+})
 
 /**
  * Block user
  */
 export const blockUser = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  
-  const user = await userService.blockUser(userId);
-  
+  const { userId } = req.params
+
+  const user = await userService.blockUser(userId)
+
   // Send email notification to the blocked user
   try {
     if (user.email) {
-      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
-      const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
-      
+      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User'
+      const accountType = user.role
+        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+        : 'User'
+
       await emailService.sendAccountBlockedEmail(
         user.email,
         userName,
         accountType,
         'Your account has been temporarily blocked due to policy violations. Please contact support for more information.'
-      );
-      
-      logger.info('Block notification email sent', { userId, email: user.email });
+      )
+
+      logger.info('Block notification email sent', { userId, email: user.email })
     }
   } catch (emailError) {
     // Log error but don't fail the operation
-    logger.error('Failed to send block notification email', { error: emailError, userId });
+    logger.error('Failed to send block notification email', { error: emailError, userId })
   }
-  
-  return ApiResponse.success(
-    res,
-    user,
-    'User blocked successfully'
-  );
-});
+
+  return ApiResponse.success(res, user, 'User blocked successfully')
+})
 
 /**
  * Unblock user
  */
 export const unblockUser = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  
-  const user = await userService.unblockUser(userId);
-  
+  const { userId } = req.params
+
+  const user = await userService.unblockUser(userId)
+
   // Send email notification to the unblocked user
   try {
     if (user.email) {
-      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
-      const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
-      
-      await emailService.sendAccountUnblockedEmail(
-        user.email,
-        userName,
-        accountType
-      );
-      
-      logger.info('Unblock notification email sent', { userId, email: user.email });
+      const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User'
+      const accountType = user.role
+        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+        : 'User'
+
+      await emailService.sendAccountUnblockedEmail(user.email, userName, accountType)
+
+      logger.info('Unblock notification email sent', { userId, email: user.email })
     }
   } catch (emailError) {
     // Log error but don't fail the operation
-    logger.error('Failed to send unblock notification email', { error: emailError, userId });
+    logger.error('Failed to send unblock notification email', { error: emailError, userId })
   }
-  
-  return ApiResponse.success(
-    res,
-    user,
-    'User unblocked successfully'
-  );
-});
+
+  return ApiResponse.success(res, user, 'User unblocked successfully')
+})
 
 /**
  * Delete user (soft delete)
  */
 export const deleteUser = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  
+  const { userId } = req.params
+
   // Get user details before deletion for email
-  const user = await User.findById(userId);
-  
+  const user = await User.findById(userId)
+
   if (user && user.email) {
-    const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User';
-    const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
-    
+    const userName = user.displayName || `${user.firstName} ${user.lastName}`.trim() || 'User'
+    const accountType = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'
+
     // Perform the deletion
-    const result = await userService.softDeleteUser(userId);
-    
+    const result = await userService.softDeleteUser(userId)
+
     // Send email notification about account deletion
     try {
       await emailService.sendAccountDeletedEmail(
@@ -349,45 +330,115 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
         userName,
         accountType,
         'Account deleted as per administrative action'
-      );
-      
-      logger.info('Deletion notification email sent', { userId, email: user.email });
+      )
+
+      logger.info('Deletion notification email sent', { userId, email: user.email })
     } catch (emailError) {
       // Log error but don't fail the operation
-      logger.error('Failed to send deletion notification email', { error: emailError, userId });
+      logger.error('Failed to send deletion notification email', { error: emailError, userId })
     }
-    
-    return ApiResponse.success(
-      res,
-      result,
-      result.message
-    );
+
+    return ApiResponse.success(res, result, result.message)
   } else {
     // If user not found, still try to delete (might be partially deleted)
-    const result = await userService.softDeleteUser(userId);
-    
-    return ApiResponse.success(
-      res,
-      result,
-      result.message
-    );
+    const result = await userService.softDeleteUser(userId)
+
+    return ApiResponse.success(res, result, result.message)
   }
-});
+})
 
 /**
  * Restore deleted user
  */
 export const restoreUser = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  
-  const user = await userService.restoreUser(userId);
-  
-  return ApiResponse.success(
-    res,
-    user,
-    'User restored successfully'
-  );
-});
+  const { userId } = req.params
+
+  const user = await userService.restoreUser(userId)
+
+  return ApiResponse.success(res, user, 'User restored successfully')
+})
+
+/**
+ * Switch user role between buyer and seller
+ */
+export const switchRole = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.userId
+  const { role } = req.body
+
+  if (!userId) {
+    throw ApiError.unauthorized('User not authenticated')
+  }
+
+  // Validate role
+  if (!role || (role !== 'buyer' && role !== 'seller')) {
+    throw ApiError.badRequest('Invalid role. Must be either "buyer" or "seller"')
+  }
+
+  // Get current user
+  const currentUser = await User.findById(userId)
+
+  if (!currentUser) {
+    throw ApiError.notFound('User not found')
+  }
+
+  // Check if user is already in the requested role
+  if (currentUser.role === role) {
+    throw ApiError.badRequest(`User is already a ${role}`)
+  }
+
+  // Don't allow switching if user is admin or driver
+  if (currentUser.role === 'admin' || currentUser.role === 'driver') {
+    throw ApiError.forbidden('Admin and driver users cannot switch roles')
+  }
+
+  // Update user role only (keep profile fields intact for both roles)
+  await User.findByIdAndUpdate(
+    userId,
+    {
+      role: role,
+    },
+    {
+      new: true,
+      runValidators: false, // Skip validation since we already checked above
+    }
+  )
+
+  // Fetch the updated user with all methods
+  const updatedUser = await User.findById(userId).select('-password')
+
+  if (!updatedUser) {
+    throw ApiError.serverError('Failed to update user role')
+  }
+
+  // Generate new tokens with updated role
+  const accessToken = updatedUser.generateAccessToken()
+  const refreshToken = updatedUser.generateRefreshToken()
+
+  // Save the refresh token to the user document
+  await updatedUser.addRefreshToken(refreshToken)
+
+  logger.info('User role switched successfully', {
+    userId,
+    oldRole: currentUser.role,
+    newRole: role,
+  })
+
+  // Remove refreshTokens from the response
+  const userResponse = updatedUser.toObject()
+  delete userResponse.refreshTokens
+
+  res.status(200).json({
+    success: true,
+    message: `Successfully switched to ${role} mode`,
+    data: {
+      user: formatUserResponse(userResponse),
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    },
+  })
+})
 
 export default {
   updateProfile,
@@ -399,4 +450,5 @@ export default {
   unblockUser,
   deleteUser,
   restoreUser,
-};
+  switchRole,
+}
