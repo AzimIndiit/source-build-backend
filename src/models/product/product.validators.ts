@@ -113,6 +113,13 @@ const pickupHoursSchema = z
   ])
   .optional()
 
+const productAttributeSchema = z.object({
+  attributeName: z.string().trim().min(1, 'Attribute name is required'),
+  inputType: z.enum(['text', 'number', 'dropdown', 'multiselect', 'boolean', 'radio']),
+  value: z.any(), // Can be string, number, boolean, or array depending on inputType
+  required: z.boolean().optional(),
+})
+
 export const createProductDraftSchema = z.object({
   title: z
     .string()
@@ -123,9 +130,19 @@ export const createProductDraftSchema = z.object({
   status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.DRAFT),
   price: z.number().positive('Price must be greater than 0'),
   priceType: z.enum(['sqft', 'linear', 'pallet']).default('sqft').optional(),
-  category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID').min(1, 'Category is required'),
+  category: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID')
+    .min(1, 'Category is required'),
   description: z.string().optional(),
-  subCategory: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID').optional(),
+  subCategory: z
+    .union([
+      z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID'),
+      z.literal(''),
+      z.null()
+    ])
+    .optional()
+    .transform(val => val === '' ? null : val),
   quantity: z.number().optional(),
   outOfStock: z.boolean().optional(),
   brand: z.string().optional(),
@@ -144,6 +161,7 @@ export const createProductDraftSchema = z.object({
   discount: draftDiscountSchema,
   dimensions: dimensionsSchema,
   availabilityRadius: z.number().optional(),
+  productAttributes: z.array(productAttributeSchema).optional(),
 })
 
 export const createProductSchema = z
@@ -165,7 +183,14 @@ export const createProductSchema = z
       .min(10, 'Description must be at least 10 characters')
       .max(2000, 'Description must not exceed 2000 characters'),
     category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID'),
-    subCategory: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID').optional(),
+    subCategory: z
+      .union([
+        z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID'),
+        z.literal(''),
+        z.null()
+      ])
+      .optional()
+      .transform(val => val === '' ? null : val),
     quantity: z
       .number()
       .int()
@@ -206,7 +231,8 @@ export const createProductSchema = z
           )
       )
       .max(10, 'Maximum 10 tags allowed')
-      .optional().default([]),
+      .optional()
+      .default([]),
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
     marketplaceOptions: marketplaceOptionsSchema.required(),
     pickupHours: pickupHoursSchema,
@@ -225,6 +251,7 @@ export const createProductSchema = z
       .optional(),
     images: z.array(z.string()).optional(),
     status: z.nativeEnum(ProductStatus).optional().default(ProductStatus.PENDING),
+    productAttributes: z.array(productAttributeSchema).optional(),
   })
   .refine(
     (data) => {
@@ -291,9 +318,18 @@ export const updateProductSchema = z
       .max(2000, 'Description must not exceed 2000 characters')
       .optional(),
     priceType: z.enum(['sqft', 'linear', 'pallet']).default('sqft').optional(),
-    category:z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID').optional(),
-    subCategory:z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID')
+    category: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID')
       .optional(),
+    subCategory: z
+      .union([
+        z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID'),
+        z.literal(''),
+        z.null()
+      ])
+      .optional()
+      .transform(val => val === '' ? null : val),
     quantity: z
       .number()
       .int()
@@ -338,7 +374,8 @@ export const updateProductSchema = z
           )
       )
       .max(10, 'Maximum 10 tags allowed')
-      .optional().default([]),
+      .optional()
+      .default([]),
     variants: z.array(variantSchema).max(5, 'Maximum 5 variants allowed').optional(),
     marketplaceOptions: marketplaceOptionsSchema.optional(),
     pickupHours: pickupHoursSchema,
@@ -387,7 +424,7 @@ export const deleteProductSchema = z.object({
 })
 
 export const getProductsSchema = z.object({
-  category:z.string().optional(),
+  category: z.string().optional(),
   subCategory: z.string().optional(),
   minPrice: z.string().transform(Number).pipe(z.number().min(0)).optional(),
   maxPrice: z.string().transform(Number).pipe(z.number().min(0)).optional(),

@@ -32,7 +32,32 @@ const categorySchema = new Schema<ICategoryDocument>(
     order: {
       type: Number,
       default: 0
-    }
+    },
+    hasAttributes: {
+      type: Boolean,
+      default: false
+    },
+    attributes: [{
+      name: {
+        type: String,
+        trim: true,
+        maxlength: 100
+      },
+      inputType: {
+        type: String,
+        enum: ['text', 'number', 'dropdown', 'multiselect', 'boolean', 'radio']
+      },
+      required: {
+        type: Boolean,
+        default: false
+      },
+      values: [{
+        value: { type: String, trim: true },
+        order: { type: Number, default: 0 }
+      }],
+      order: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: true }
+    }]
   },
   {
     timestamps: true,

@@ -79,7 +79,12 @@ export const getSubcategories = catchAsync(async (req: Request, res: Response) =
 
   // Execute query
   const [subcategories, totalCount] = await Promise.all([
-    Subcategory.find(query).populate('category', 'name slug').sort(sort).skip(skip).limit(limit),
+    Subcategory.find(query)
+      .select('+hasAttributes +attributes')
+      .populate('category', 'name slug')
+      .sort(sort)
+      .skip(skip)
+      .limit(limit),
     Subcategory.countDocuments(query),
   ])
 
@@ -103,7 +108,9 @@ export const getSubcategories = catchAsync(async (req: Request, res: Response) =
 export const getSubcategoryById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
 
-  const subcategory = await Subcategory.findById(id).populate('category')
+  const subcategory = await Subcategory.findById(id)
+    .select('+hasAttributes +attributes')
+    .populate('category')
 
   if (!subcategory) {
     throw ApiError.notFound('Subcategory not found')
@@ -115,7 +122,9 @@ export const getSubcategoryById = catchAsync(async (req: Request, res: Response)
 export const getSubcategoryBySlug = catchAsync(async (req: Request, res: Response) => {
   const { slug } = req.params
 
-  const subcategory = await Subcategory.findOne({ slug }).populate('category')
+  const subcategory = await Subcategory.findOne({ slug })
+    .select('+hasAttributes +attributes')
+    .populate('category')
 
   if (!subcategory) {
     throw ApiError.notFound('Subcategory not found')
@@ -136,7 +145,9 @@ export const getSubcategoriesByCategory = catchAsync(async (req: Request, res: R
   const subcategories = await Subcategory.find({
     category: categoryId,
     isActive: true,
-  }).sort({ order: 1, name: 1 })
+  })
+    .select('+hasAttributes +attributes')
+    .sort({ order: 1, name: 1 })
 
   return ApiResponse.success(res, subcategories, 'Subcategories fetched successfully')
 })

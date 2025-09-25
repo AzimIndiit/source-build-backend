@@ -1,5 +1,21 @@
 import { z } from 'zod';
 
+// Attribute value schema
+const attributeValueSchema = z.object({
+  value: z.string().trim().min(1, 'Value is required'),
+  order: z.number().optional()
+});
+
+// Attribute schema
+const attributeSchema = z.object({
+  name: z.string().trim().min(1, 'Attribute name is required').max(100),
+  inputType: z.enum(['text', 'number', 'dropdown', 'multiselect', 'boolean', 'radio']),
+  required: z.boolean().optional(),
+  values: z.array(attributeValueSchema).optional(),
+  order: z.number().optional(),
+  isActive: z.boolean().optional()
+});
+
 export const createCategorySchema = z.object({
   name: z.string()
     .min(2, 'Category name must be at least 2 characters')
@@ -17,7 +33,9 @@ export const createCategorySchema = z.object({
   order: z.number()
     .int('Order must be an integer')
     .min(0, 'Order must be a positive number')
-    .optional()
+    .optional(),
+  hasAttributes: z.boolean().optional(),
+  attributes: z.array(attributeSchema).optional()
 });
 
 export const updateCategorySchema = z.object({
@@ -38,7 +56,9 @@ export const updateCategorySchema = z.object({
   order: z.number()
     .int('Order must be an integer')
     .min(0, 'Order must be a positive number')
-    .optional()
+    .optional(),
+  hasAttributes: z.boolean().optional(),
+  attributes: z.array(attributeSchema).optional()
 });
 
 export const getCategoriesSchema = z.object({
