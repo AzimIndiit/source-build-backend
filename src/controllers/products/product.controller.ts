@@ -98,7 +98,7 @@ export const getProducts = [
       status: ProductStatus.ACTIVE,
     }
 
-    if (user && userRole !== 'buyer') {
+    if (user && !['buyer','admin'].includes(userRole)) {
       filter.seller = user
       delete filter.status
     }
@@ -305,7 +305,7 @@ export const getProducts = [
       .lean()
 
     const totalPages = Math.ceil(total / limit)
-
+console.log('productsWithWishlist', productsWithWishlist)
     return ApiResponse.successWithPagination(
       res,
       {

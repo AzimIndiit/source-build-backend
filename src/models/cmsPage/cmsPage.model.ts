@@ -1,14 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export enum ContentType {
-  TERMS_CONDITIONS = 'terms_conditions',
-  PRIVACY_POLICY = 'privacy_policy',
-  ABOUT_US = 'about_us',
-  SELLER_TERMS_CONDITIONS = 'seller_terms_conditions',
-  SELLER_PRIVACY_POLICY = 'seller_privacy_policy',
-  SELLER_ABOUT_US = 'seller_about_us',
-  PAGE = 'page',
-  LANDING_PAGE = 'landing_page',
+export interface ICmsPage extends Document {
+  userId: mongoose.Types.ObjectId;
+  title: string;
+  slug: string;
+  content: string;
+  isLandingPage: boolean;
+  sections?: ILandingSection[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ILandingSection {
@@ -31,19 +31,6 @@ export interface ILandingSection {
   productIds?: string[]; // Store only product IDs
   categoryIds?: string[]; // Store only category IDs
   order: number;
-}
-
-export interface ICmsContent extends Document {
-  userId: mongoose.Types.ObjectId;
-  type: ContentType;
-  title: string;
-  slug?: string;
-  content: string;
-  isActive: boolean;
-  sections?: ILandingSection[];
-  lastUpdated: Date;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const landingSectionSchema = new Schema<ILandingSection>(
@@ -135,17 +122,11 @@ const landingSectionSchema = new Schema<ILandingSection>(
   { _id: false }
 );
 
-const cmsContentSchema = new Schema<ICmsContent>(
+const cmsPageSchema = new Schema<ICmsPage>(
   {
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true,
-    },
-    type: {
-      type: String,
-      enum: Object.values(ContentType),
       required: true,
       index: true,
     },
@@ -157,61 +138,41 @@ const cmsContentSchema = new Schema<ICmsContent>(
     },
     slug: {
       type: String,
+      required: true,
       trim: true,
       lowercase: true,
       maxlength: 200,
     },
     content: {
       type: String,
-      maxlength: 50000, // Allow up to 50k characters for content
-      default:""
+      required: true,
+      maxlength: 50000,
+    },
+    isLandingPage: {
+      type: Boolean,
+      default: false,
     },
     sections: [landingSectionSchema],
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    lastUpdated: {
-      type: Date,
-      default: Date.now,
-    },
   },
   {
     timestamps: true,
   }
 );
 
-// Compound index for unique content type per user (except for PAGE and LANDING_PAGE types)
-cmsContentSchema.index({ userId: 1, type: 1 }, { 
-  unique: true,
-  partialFilterExpression: { 
-    type: { $nin: ['page', 'landing_page'] } 
-  }
-});
+// Compound index for unique slug per user
+cmsPageSchema.index({ userId: 1, slug: 1 }, { unique: true });
 
-// Index for pages - unique slug per user
-cmsContentSchema.index({ userId: 1, slug: 1 }, { 
-  unique: true,
-  partialFilterExpression: { 
-    type: { $in: ['page', 'landing_page'] } 
-  }
-});
-
-// Update lastUpdated on save and generate slug for pages
-cmsContentSchema.pre('save', function (next) {
-  this.lastUpdated = new Date();
-  
-  // Generate slug from title for pages if not provided
-  if ((this.type === ContentType.PAGE || this.type === ContentType.LANDING_PAGE) && !this.slug && this.title) {
+// Generate slug from title if not provided
+cmsPageSchema.pre('save', function (next) {
+  if (!this.slug && this.title) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
-  
   next();
 });
 
-const CmsContent = mongoose.model<ICmsContent>('CmsContent', cmsContentSchema);
+const CmsPage = mongoose.model<ICmsPage>('CmsPage', cmsPageSchema);
 
-export default CmsContent;
+export default CmsPage;
