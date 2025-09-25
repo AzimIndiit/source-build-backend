@@ -19,17 +19,31 @@ const transformSection = (section: any) => {
   
   // Transform banner section
   if (section.type === 'banner' || section.type === 'hero') {
+    // Check if items are already present (from frontend sending items directly)
+    let items = [];
+    if (section.items && Array.isArray(section.items)) {
+      // Items already present, use them directly
+      items = section.items.map((item: any) => ({
+        title: item.title || '',
+        link: item.link || '',
+        description: item.description || ''
+      }));
+    } else if (section.buttons && Array.isArray(section.buttons)) {
+      // Old format with buttons, transform them to items
+      items = section.buttons.map((btn: any) => ({
+        title: btn.title || '',
+        link: btn.link || '',
+        description: btn.description || ''
+      }));
+    }
+
     const transformed = {
       id: section.id,
       type: 'hero',
       title: section.title || '',
       subtitle: section.subtitle || '',
       backgroundImage: section.imageUrl || section.backgroundImage || '',
-      items: section.buttons?.map((btn: any) => ({
-        title: btn.title || '',
-        link: btn.link || '',
-        description: btn.description || ''
-      })) || [],
+      items: items,
       order: section.order || 0
     };
     console.log('Transformed banner to hero:', JSON.stringify(transformed, null, 2))
