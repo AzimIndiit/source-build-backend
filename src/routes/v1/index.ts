@@ -22,6 +22,7 @@ import quoteRoutes from './quote.routes.js';
 import cartRoutes from './cart.routes.js';
 import categoryRoutes from './category.routes.js';
 import subcategoryRoutes from './subcategory.routes.js';
+import attributesRoutes from './attributes.routes.js';
 // Import other route modules as they are created
 // import paymentRoutes from './payment.routes.js';
 
@@ -65,6 +66,7 @@ router.use('/quotes', quoteRoutes);
 router.use('/cart', cartRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/subcategories', subcategoryRoutes);
+router.use('/attributes', attributesRoutes);
 
 // Protected routes (uncomment as controllers are implemented)
 // router.use('/payments', paymentRoutes);

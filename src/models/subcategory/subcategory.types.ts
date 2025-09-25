@@ -1,5 +1,14 @@
 import { Document, Types } from 'mongoose';
 
+export interface IAttribute {
+  name: string;
+  inputType: 'text' | 'number' | 'dropdown' | 'multiselect' | 'boolean' | 'radio';
+  required?: boolean;
+  values?: { value: string; order?: number }[];
+  order?: number;
+  isActive?: boolean;
+}
+
 export interface ISubcategory {
   name: string;
   description?: string;
@@ -8,6 +17,8 @@ export interface ISubcategory {
   category: Types.ObjectId;
   isActive: boolean;
   order?: number;
+  hasAttributes?: boolean;
+  attributes?: IAttribute[];
   createdAt?: Date;
   updatedAt?: Date;
 }

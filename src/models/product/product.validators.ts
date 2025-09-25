@@ -165,7 +165,7 @@ export const createProductSchema = z
       .min(10, 'Description must be at least 10 characters')
       .max(2000, 'Description must not exceed 2000 characters'),
     category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID'),
-    subCategory: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID'),
+    subCategory: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Subcategory ID').optional(),
     quantity: z
       .number()
       .int()
