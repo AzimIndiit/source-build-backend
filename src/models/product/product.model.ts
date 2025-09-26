@@ -239,6 +239,26 @@ const productSchema = new Schema<IProduct, IProductModel>(
       default: false,
       index: true,
     },
+    productAttributes: [
+      {
+        attributeName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        inputType: {
+          type: String,
+          enum: ['text', 'number', 'dropdown', 'multiselect', 'boolean', 'radio'],
+          required: true,
+        },
+        // store either single value (string/number/boolean) or array for multiselect
+        value: Schema.Types.Mixed,
+        required: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -261,7 +281,6 @@ productSchema.index({ price: 1, createdAt: -1 })
 productSchema.index({ seller: 1, status: 1 })
 productSchema.index({ category: 1, subCategory: 1, status: 1 })
 productSchema.index({ featured: 1, status: 1, createdAt: -1 })
-
 // Virtual for calculating the final price after discount
 productSchema.virtual('finalPrice').get(function () {
   return this.calculateDiscountedPrice()

@@ -10,7 +10,7 @@ const router = Router()
 
 /**
  * @swagger
- * components:
+* components:
  *   securitySchemes:
  *     bearerAuth:
  *       type: http

@@ -21,6 +21,12 @@ export const createProductDraft = [
     const productData = req.body
     const productId = req.params.id
     console.log('productData', productData)
+    
+    // Handle empty subcategory - convert empty string to null
+    if (productData.subCategory === '' || productData.subCategory === undefined) {
+      productData.subCategory = null
+    }
+    
     if (productId) {
       const product = await ProductModal.findById(productId)
       if (!product) {
@@ -69,6 +75,11 @@ export const createProduct = [
   validate(createProductSchema),
   catchAsync(async (req: Request, res: Response) => {
     const productData: CreateProductDTO = req.body
+    
+    // Handle empty subcategory - convert empty string to null
+    if (productData.subCategory === '' || productData.subCategory === undefined) {
+      productData.subCategory = null
+    }
 
     const product = await ProductModal.create({
       ...productData,
@@ -98,7 +109,7 @@ export const getProducts = [
       status: ProductStatus.ACTIVE,
     }
 
-    if (user && userRole !== 'buyer') {
+    if (user && !['buyer','admin'].includes(userRole)) {
       filter.seller = user
       delete filter.status
     }
@@ -144,20 +155,165 @@ export const getProducts = [
       }
     }
     
-    // ✅ SubCategory filtering - handle slug or ID
+    // ✅ SubCategory filtering - handle slug or ID (or comma-separated list)
+    let selectedSubcategoryIds: string[] = []
     if (query['subCategory']) {
-      const subCategoryValue = String(query['subCategory'])
-      if (Types.ObjectId.isValid(subCategoryValue)) {
-        // It's an ID, use directly
-        filter.subCategory = subCategoryValue
-      } else {
-        // It's a slug, find the subcategory by slug
-        const subcategory = await Subcategory.findOne({ slug: subCategoryValue })
-        if (subcategory) {
-          filter.subCategory = subcategory._id
+      const subCategoryValues = String(query['subCategory']).split(',')
+      
+      for (const subCategoryValue of subCategoryValues) {
+        const trimmedValue = subCategoryValue.trim()
+        if (Types.ObjectId.isValid(trimmedValue)) {
+          // It's an ID, use directly
+          selectedSubcategoryIds.push(trimmedValue)
+        } else {
+          // It's a slug, find the subcategory by slug
+          const subcategory = await Subcategory.findOne({ slug: trimmedValue })
+          if (subcategory) {
+            selectedSubcategoryIds.push(subcategory._id.toString())
+          }
         }
       }
+      
+      // Apply subcategory filter if we have valid IDs
+      if (selectedSubcategoryIds.length === 1) {
+        filter.subCategory = selectedSubcategoryIds[0]
+      } else if (selectedSubcategoryIds.length > 1) {
+        filter.subCategory = { $in: selectedSubcategoryIds }
+      }
     }
+    
+    // ✅ Attribute filtering with category and subcategory handling
+    if (query['attributes']) {
+      let attributesFilter = {}
+      
+      try {
+        // Parse attributes if they come as JSON string
+        if (typeof query['attributes'] === 'string') {
+          attributesFilter = JSON.parse(query['attributes'] as string)
+        } else {
+          attributesFilter = query['attributes'] as any
+        }
+        
+        // Convert attribute filters to product attribute queries
+        // Format: { "categoryId_attributeName": ["value1", "value2"], ... } OR
+        //         { "subcategoryId_attributeName": ["value1", "value2"], ... }
+        const categoryConditions: any[] = []
+        const subcategoryConditions: Record<string, any[]> = {}
+        const subcategoriesWithAttributes = new Set<string>()
+        
+        Object.entries(attributesFilter).forEach(([key, values]) => {
+          if (Array.isArray(values) && values.length > 0) {
+            // Extract entity ID and attribute name from the key
+            const [entityId, ...attributeNameParts] = key.split('_')
+            const attributeName = attributeNameParts.join('_')
+            
+            // Check if this is a category ID (matches the category filter if set)
+            const isCategoryAttribute = filter.category && filter.category.toString() === entityId
+            
+            if (isCategoryAttribute) {
+              // This is a category-level attribute
+              categoryConditions.push({
+                productAttributes: {
+                  $elemMatch: {
+                    attributeName: attributeName,
+                    value: { $in: values }
+                  }
+                }
+              })
+            } else {
+              // This is a subcategory-level attribute
+              subcategoriesWithAttributes.add(entityId)
+              
+              // Group attribute conditions by subcategory
+              if (!subcategoryConditions[entityId]) {
+                subcategoryConditions[entityId] = []
+              }
+              
+              subcategoryConditions[entityId].push({
+                productAttributes: {
+                  $elemMatch: {
+                    attributeName: attributeName,
+                    value: { $in: values }
+                  }
+                }
+              })
+            }
+          }
+        })
+        
+        // Build the filter conditions
+        const orConditions: any[] = []
+        
+        // If we have category-level attributes, apply them to all products in the category
+        if (categoryConditions.length > 0 && filter.category) {
+          // Apply category attributes as AND conditions at the top level
+          if (categoryConditions.length === 1) {
+            Object.assign(filter, categoryConditions[0])
+          } else {
+            filter.$and = [...(filter.$and || []), ...categoryConditions]
+          }
+        }
+        
+        // Handle subcategory attributes if we have subcategories selected
+        if (selectedSubcategoryIds.length > 0) {
+          // Find subcategories without attribute filters
+          const subcategoriesWithoutAttributes = selectedSubcategoryIds.filter(
+            id => !subcategoriesWithAttributes.has(id)
+          )
+          
+          // Add conditions for subcategories with attribute filters
+          Object.entries(subcategoryConditions).forEach(([subcategoryId, conditions]) => {
+            if (conditions.length === 1) {
+              // Single attribute for this subcategory
+              orConditions.push({
+                subCategory: subcategoryId,
+                ...conditions[0]
+              })
+            } else if (conditions.length > 1) {
+              // Multiple attributes for this subcategory (AND them together)
+              orConditions.push({
+                subCategory: subcategoryId,
+                $and: conditions
+              })
+            }
+          })
+          
+          // Add conditions for subcategories without attribute filters (show all products from these subcategories)
+          subcategoriesWithoutAttributes.forEach(subcategoryId => {
+            orConditions.push({
+              subCategory: subcategoryId
+            })
+          })
+          
+          // Apply the OR conditions between different subcategories
+          if (orConditions.length > 0) {
+            // Clear the previous subcategory filter since we're handling it in the OR conditions
+            delete filter.subCategory
+            
+            if (orConditions.length === 1) {
+              // If we already have category attributes, combine with subcategory condition
+              if (categoryConditions.length > 0) {
+                // The category attributes are already in filter, just add subcategory condition
+                Object.assign(filter, { subCategory: orConditions[0].subCategory })
+                // Merge the subcategory attribute conditions
+                if (orConditions[0].productAttributes || orConditions[0].$and) {
+                  const subcatConditions = orConditions[0].$and || [orConditions[0].productAttributes ? { productAttributes: orConditions[0].productAttributes } : null].filter(Boolean)
+                  filter.$and = [...(filter.$and || []), ...subcatConditions]
+                }
+              } else {
+                Object.assign(filter, orConditions[0])
+              }
+            } else {
+              // Use OR between different subcategory conditions
+              filter.$or = orConditions
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse attributes filter:', error)
+      }
+    }
+    
     if (query['brand']) filter.brand = query['brand']
     if (query['color']) filter.color = query['color']
     if (query['seller']) filter.seller = query['seller']
@@ -305,7 +461,7 @@ export const getProducts = [
       .lean()
 
     const totalPages = Math.ceil(total / limit)
-
+console.log('productsWithWishlist', productsWithWishlist)
     return ApiResponse.successWithPagination(
       res,
       {
@@ -397,6 +553,11 @@ export const updateProduct = catchAsync(async (req: Request, res: Response) => {
 
   if (product.seller.toString() !== req.user?.id) {
     throw ApiError.forbidden('You are not authorized to update this product')
+  }
+
+  // Handle empty subcategory - convert empty string to null
+  if (updateData.subCategory === '' || updateData.subCategory === undefined) {
+    updateData.subCategory = null
   }
 
   // Handle variants separately to ensure proper replacement

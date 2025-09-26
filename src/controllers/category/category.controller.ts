@@ -64,7 +64,11 @@ export const getCategories = catchAsync(async (req: Request, res: Response) => {
 
   // Execute query
   const [categories, totalCount] = await Promise.all([
-    Category.find(query).sort(sort).skip(skip).limit(limit),
+    Category.find(query)
+      .select('+hasAttributes +attributes')
+      .sort(sort)
+      .skip(skip)
+      .limit(limit),
     Category.countDocuments(query),
   ])
 
@@ -89,6 +93,7 @@ export const getCategoryById = catchAsync(async (req: Request, res: Response) =>
   const { id } = req.params
 
   const category = await Category.findById(id)
+    .select('+hasAttributes +attributes')
 
   if (!category) {
     throw ApiError.notFound('Category not found')
@@ -101,6 +106,7 @@ export const getCategoryBySlug = catchAsync(async (req: Request, res: Response) 
   const { slug } = req.params
 
   const category = await Category.findOne({ slug })
+    .select('+hasAttributes +attributes')
 
   if (!category) {
     throw ApiError.notFound('Category not found')
