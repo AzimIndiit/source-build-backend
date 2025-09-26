@@ -470,6 +470,11 @@ export const getProductsSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  // Attributes filter - can be JSON string or object
+  attributes: z.union([
+    z.string(), // JSON string from frontend
+    z.record(z.array(z.string())) // Object with attribute keys and value arrays
+  ]).optional(),
 })
 
 export type CreateProductInput = z.infer<typeof createProductSchema>

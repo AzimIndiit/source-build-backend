@@ -144,20 +144,124 @@ export const getProducts = [
       }
     }
     
-    // ✅ SubCategory filtering - handle slug or ID
+    // ✅ SubCategory filtering - handle slug or ID (or comma-separated list)
+    let selectedSubcategoryIds: string[] = []
     if (query['subCategory']) {
-      const subCategoryValue = String(query['subCategory'])
-      if (Types.ObjectId.isValid(subCategoryValue)) {
-        // It's an ID, use directly
-        filter.subCategory = subCategoryValue
-      } else {
-        // It's a slug, find the subcategory by slug
-        const subcategory = await Subcategory.findOne({ slug: subCategoryValue })
-        if (subcategory) {
-          filter.subCategory = subcategory._id
+      const subCategoryValues = String(query['subCategory']).split(',')
+      
+      for (const subCategoryValue of subCategoryValues) {
+        const trimmedValue = subCategoryValue.trim()
+        if (Types.ObjectId.isValid(trimmedValue)) {
+          // It's an ID, use directly
+          selectedSubcategoryIds.push(trimmedValue)
+        } else {
+          // It's a slug, find the subcategory by slug
+          const subcategory = await Subcategory.findOne({ slug: trimmedValue })
+          if (subcategory) {
+            selectedSubcategoryIds.push(subcategory._id.toString())
+          }
         }
       }
+      
+      // Apply subcategory filter if we have valid IDs
+      if (selectedSubcategoryIds.length === 1) {
+        filter.subCategory = selectedSubcategoryIds[0]
+      } else if (selectedSubcategoryIds.length > 1) {
+        filter.subCategory = { $in: selectedSubcategoryIds }
+      }
     }
+    
+    // ✅ Attribute filtering with subcategory handling
+    if (query['attributes'] && selectedSubcategoryIds.length > 0) {
+      let attributesFilter = {}
+      
+      try {
+        // Parse attributes if they come as JSON string
+        if (typeof query['attributes'] === 'string') {
+          attributesFilter = JSON.parse(query['attributes'] as string)
+        } else {
+          attributesFilter = query['attributes'] as any
+        }
+        
+        // Convert attribute filters to product attribute queries
+        // Format: { "subcategoryId_attributeName": ["value1", "value2"], ... }
+        // Group conditions by subcategory to handle OR logic between different subcategories
+        const subcategoriesWithAttributes = new Set<string>()
+        const subcategoryConditions: Record<string, any[]> = {}
+        
+        Object.entries(attributesFilter).forEach(([key, values]) => {
+          if (Array.isArray(values) && values.length > 0) {
+            // Extract subcategory ID and attribute name from the key
+            const [subcategoryId, ...attributeNameParts] = key.split('_')
+            const attributeName = attributeNameParts.join('_')
+            
+            subcategoriesWithAttributes.add(subcategoryId)
+            
+            // Group attribute conditions by subcategory
+            if (!subcategoryConditions[subcategoryId]) {
+              subcategoryConditions[subcategoryId] = []
+            }
+            
+            subcategoryConditions[subcategoryId].push({
+              productAttributes: {
+                $elemMatch: {
+                  attributeName: attributeName,
+                  value: { $in: values }
+                }
+              }
+            })
+          }
+        })
+        
+        // Find subcategories without attribute filters
+        const subcategoriesWithoutAttributes = selectedSubcategoryIds.filter(
+          id => !subcategoriesWithAttributes.has(id)
+        )
+        
+        // Build the filter conditions
+        const orConditions: any[] = []
+        
+        // Add conditions for subcategories with attribute filters
+        Object.entries(subcategoryConditions).forEach(([subcategoryId, conditions]) => {
+          if (conditions.length === 1) {
+            // Single attribute for this subcategory
+            orConditions.push({
+              subCategory: subcategoryId,
+              ...conditions[0]
+            })
+          } else if (conditions.length > 1) {
+            // Multiple attributes for this subcategory (AND them together)
+            orConditions.push({
+              subCategory: subcategoryId,
+              $and: conditions
+            })
+          }
+        })
+        
+        // Add conditions for subcategories without attribute filters (show all products from these subcategories)
+        subcategoriesWithoutAttributes.forEach(subcategoryId => {
+          orConditions.push({
+            subCategory: subcategoryId
+          })
+        })
+        
+        // Apply the OR conditions between different subcategories
+        if (orConditions.length > 0) {
+          // Clear the previous subcategory filter since we're handling it in the OR conditions
+          delete filter.subCategory
+          
+          if (orConditions.length === 1) {
+            Object.assign(filter, orConditions[0])
+          } else {
+            // Use OR between different subcategory conditions
+            filter.$or = orConditions
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse attributes filter:', error)
+      }
+    }
+    
     if (query['brand']) filter.brand = query['brand']
     if (query['color']) filter.color = query['color']
     if (query['seller']) filter.seller = query['seller']

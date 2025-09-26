@@ -113,6 +113,7 @@ export const getAttributesBySubcategory = catchAsync(async (req: Request, res: R
   const { subcategoryId } = req.params
 
   const attributes = await Attribute.find({ 
+    subcategory: subcategoryId,
     isActive: true 
   }).sort({ order: 1 })
 
