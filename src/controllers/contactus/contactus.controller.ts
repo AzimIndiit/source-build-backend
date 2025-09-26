@@ -29,6 +29,7 @@ export const createContactUs = [
     const contactUs = await ContactUsModal.create({
       firstName: contactData.firstName,
       lastName: contactData.lastName,
+      topic: contactData.topic,
       email: contactData.email,
       phone: contactData.phone,
       message: contactData.message,
@@ -64,6 +65,7 @@ export const createContactUs = [
         firstName: contactData.firstName,
         lastName: contactData.lastName,
         phone: contactData.phone,
+        topic: contactData.topic,
         message: contactData.message,
         referenceNumber,
         submissionDate,
@@ -99,6 +101,7 @@ export const createContactUs = [
         lastName: contactData.lastName,
         customerEmail: contactData.email, // Customer's email for display in template
         phone: contactData.phone,
+        topic: contactData.topic,
         message: contactData.message,
         referenceNumber,
         submissionDate,
@@ -140,7 +143,7 @@ export const createContactUs = [
  * Get all contact us submissions with filters
  */
 export const getAllContactUs = [
-  validate(contactUsFilterSchema),
+  validate(contactUsFilterSchema.shape.query, 'query'),
   catchAsync(async (req: Request, res: Response) => {
     const query: ContactUsFilterInput = req.query as any;
     
@@ -157,7 +160,8 @@ export const getAllContactUs = [
         { lastName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
-      ];
+        { topic: { $regex: search, $options: 'i' } },
+        ];
     }
     
     // Apply additional filters
@@ -182,14 +186,26 @@ export const getAllContactUs = [
     
     const totalPages = Math.ceil(totalContacts / limit);
     
-    const response = {
+    const response: any = {
       contacts: contacts || [],
       totalCount: totalContacts || 0,
       currentPage: page,
       totalPages,
     };
     
-    return ApiResponse.success(res, response, 'Contact list fetched successfully');
+    return ApiResponse.successWithPagination(
+      res,
+      response,
+      {
+        page: Number(page),
+        limit: Number(limit),
+        total: totalContacts,
+        pages: totalPages,
+        hasNext: Number(page) < totalPages,
+        hasPrev: Number(page) > 1,
+      },
+      'Contact list fetched successfully'
+    )
   })
 ];
 
@@ -197,8 +213,8 @@ export const getAllContactUs = [
  * Update contact us submission status
  */
 export const updateContactUs = [
-  validate(contactUsIdSchema),
-  validate(updateContactUsSchema),
+  validate(contactUsIdSchema.shape.params, 'params'),
+  validate(updateContactUsSchema.shape.body, 'body'),
   catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const updateData: UpdateContactUsInput = req.body;

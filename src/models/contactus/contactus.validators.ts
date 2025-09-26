@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ContactUsStatus } from './contactus.types.js';
+  import { ContactUsStatus } from './contactus.types.js';
+import { topicEnum } from './contactus.model.js';
 
 /**
  * Create contact us submission validator
@@ -22,6 +23,7 @@ export const createContactUsSchema = z.object({
       .trim()
       .email('Please enter a valid email')
       .max(100, 'Email must not exceed 100 characters'),
+    topic: z.enum(topicEnum as [string, ...string[]]).default('other'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
     message: z
       .string()
