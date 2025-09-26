@@ -325,13 +325,34 @@ export const getProducts = [
       filter.productTag = { $in: tags }
     }
 
-    // ✅ Search
+    // ✅ Search - also check category and subcategory names
     if (query['search']) {
-      filter.$or = [
-        { title: { $regex: query['search'], $options: 'i' } },
-        { description: { $regex: query['search'], $options: 'i' } },
-        { brand: { $regex: query['search'], $options: 'i' } },
+      const searchRegex = { $regex: query['search'], $options: 'i' }
+      
+      // Find matching categories and subcategories
+      const [matchingCategories, matchingSubcategories] = await Promise.all([
+        Category.find({ name: searchRegex }).select('_id'),
+        Subcategory.find({ name: searchRegex }).select('_id')
+      ])
+      
+      const categoryIds = matchingCategories.map(cat => cat._id)
+      const subcategoryIds = matchingSubcategories.map(sub => sub._id)
+      
+      const searchConditions = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { brand: searchRegex },
       ]
+      
+      // Add category/subcategory conditions if matches found
+      if (categoryIds.length > 0) {
+        searchConditions.push({ category: { $in: categoryIds } } as any)
+      }
+      if (subcategoryIds.length > 0) {
+        searchConditions.push({ subCategory: { $in: subcategoryIds } } as any)
+      }
+      
+      filter.$or = searchConditions
     }
 
     // ✅ Price range (from pricing filter)

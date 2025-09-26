@@ -22,13 +22,13 @@ router.post('/', createContactUs);
  * @desc    Get all contact us submissions
  * @access  Private (Admin)
  */
-router.get('/', authenticate, authorize([UserRole.ADMIN]), getAllContactUs);
+router.get('/', authenticate, authorize(UserRole.ADMIN), getAllContactUs);
 
 /**
  * @route   PUT /api/v1/contact-us/:id
  * @desc    Update contact us submission status
  * @access  Private (Admin)
  */
-router.put('/:id', authenticate, authorize([UserRole.ADMIN]), updateContactUs);
+router.put('/:id', authenticate, authorize(UserRole.ADMIN), updateContactUs);
 
 export default router;

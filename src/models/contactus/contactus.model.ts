@@ -8,6 +8,8 @@ import {
 import { contactUsMethods } from './contactus.methods.js';
 import { contactUsStatics } from './contactus.statics.js';
 
+export const topicEnum = ['product', 'support', 'billing', 'technical', 'other'];
+
 const ContactUsSchema = new Schema<IContactUs, IContactUsModel, IContactUsMethods>(
   {
     firstName: {
@@ -31,6 +33,11 @@ const ContactUsSchema = new Schema<IContactUs, IContactUsModel, IContactUsMethod
       lowercase: true,
       maxlength: [100, 'Email must not exceed 100 characters'],
       match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+    },
+    topic: {
+      type: String,
+      enum: topicEnum,
+      default: 'other',
     },
     phone: {
       type: String,
